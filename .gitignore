@@ -6,4 +6,5 @@
 notebooks/*
 *.pyc
 model.pt
-datasets
+dataset
+result
