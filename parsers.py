@@ -158,7 +158,7 @@ def get_parser():
     parser.add_argument(
         "--env_base_seed",
         type=int,
-        default=0,
+        default=-1,
         help="Base seed for environments (-1 to use timestamp seed)",
     )
     parser.add_argument(
