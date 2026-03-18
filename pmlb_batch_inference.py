@@ -2,22 +2,41 @@ import argparse
 import csv
 import os
 
-import yaml
-
 from pmlb_inference import load_model, run_inference
 
 
+RESULT_FIELDS = (
+    "dataset",
+    "status",
+    "rows",
+    "n_features",
+    "refinement_type",
+    "expr",
+    "r2",
+    "rmse",
+    "complexity",
+    "seconds",
+    "error",
+)
+
+
+def is_regression_dataset(datasets_dir, dataset_name):
+    metadata_path = os.path.join(datasets_dir, dataset_name, "metadata.yaml")
+    if not os.path.exists(metadata_path):
+        return False
+    with open(metadata_path, "r") as handle:
+        for line in handle:
+            if line.strip() == "task: regression":
+                return True
+    return False
+
+
 def list_regression_datasets(datasets_dir):
-    dataset_names = []
-    for name in sorted(os.listdir(datasets_dir)):
-        metadata_path = os.path.join(datasets_dir, name, "metadata.yaml")
-        if not os.path.exists(metadata_path):
-            continue
-        with open(metadata_path, "r") as handle:
-            metadata = yaml.safe_load(handle) or {}
-        if metadata.get("task") == "regression":
-            dataset_names.append(name)
-    return dataset_names
+    return [
+        name
+        for name in sorted(os.listdir(datasets_dir))
+        if is_regression_dataset(datasets_dir, name)
+    ]
 
 
 def build_parser():
@@ -41,38 +60,14 @@ def main():
         dataset_names = dataset_names[: args.dataset_limit]
 
     model = load_model(args.model_path, device=args.device)
-    fieldnames = [
-        "dataset",
-        "status",
-        "rows",
-        "n_features",
-        "refinement_type",
-        "expr",
-        "r2",
-        "rmse",
-        "complexity",
-        "seconds",
-        "error",
-    ]
 
     with open(args.output_csv, "w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer = csv.DictWriter(handle, fieldnames=RESULT_FIELDS)
         writer.writeheader()
 
         for dataset_name in dataset_names:
-            row = {
-                "dataset": dataset_name,
-                "status": "ok",
-                "rows": "",
-                "n_features": "",
-                "refinement_type": "",
-                "expr": "",
-                "r2": "",
-                "rmse": "",
-                "complexity": "",
-                "seconds": "",
-                "error": "",
-            }
+            row = {field: "" for field in RESULT_FIELDS}
+            row.update({"dataset": dataset_name, "status": "ok"})
             try:
                 result = run_inference(
                     dataset_name=dataset_name,
@@ -83,18 +78,7 @@ def main():
                     n_trees_to_refine=args.n_trees_to_refine,
                     rescale=args.rescale,
                 )
-                row.update(
-                    {
-                        "rows": result["rows"],
-                        "n_features": result["n_features"],
-                        "refinement_type": result["refinement_type"],
-                        "expr": result["expr"],
-                        "r2": result["r2"],
-                        "rmse": result["rmse"],
-                        "complexity": result["complexity"],
-                        "seconds": result["seconds"],
-                    }
-                )
+                row.update({field: result[field] for field in RESULT_FIELDS if field in result})
             except Exception as exc:
                 row["status"] = "error"
                 row["error"] = str(exc)
