@@ -2,7 +2,7 @@ import argparse
 import csv
 import os
 
-from pmlb_inference import load_model, run_inference
+from experiments.pmlb.pmlb_inference import load_model, run_inference
 
 
 RESULT_FIELDS = (
@@ -44,7 +44,7 @@ def build_parser():
     parser.add_argument("--datasets_dir", default="pmlb/datasets")
     parser.add_argument("--model_path", default="model.pt")
     parser.add_argument("--device", default="cpu")
-    parser.add_argument("--output_csv", default="pmlb_results.csv")
+    parser.add_argument("--output_csv", default="experiments/pmlb/results/pmlb_results.csv")
     parser.add_argument("--sample_rows", type=int, default=None)
     parser.add_argument("--max_rows", type=int, default=200)
     parser.add_argument("--max_input_points", type=int, default=200)
@@ -66,7 +66,12 @@ def main():
 
     model = load_model(args.model_path, device=args.device)
 
-    with open(args.output_csv, "w", newline="") as handle:
+    output_path = args.output_csv
+    output_dir = os.path.dirname(output_path)
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+
+    with open(output_path, "w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=RESULT_FIELDS)
         writer.writeheader()
 

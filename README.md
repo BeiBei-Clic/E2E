@@ -42,30 +42,32 @@ env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u al
 PYTHONPATH=. .venv/bin/python -m jupyter nbconvert --to notebook --execute --inplace Example.ipynb
 ```
 
+PMLB 相关脚本和结果统一放在 `experiments/pmlb/` 下管理。
+
 用本地 `pmlb/datasets` 中的一个数据集抽样 200 行做推理测试：
 
 ```bash
-PYTHONPATH=. .venv/bin/python pmlb_inference.py
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_inference.py
 ```
 
 先用更小参数快速跑一遍全量数据集列表，检查 CSV 保存链路：
 
 ```bash
-PYTHONPATH=. .venv/bin/python pmlb_batch_inference.py --output_csv pmlb_results_smoke.csv --sample_rows 20 --n_trees_to_refine 1
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --output_csv experiments/pmlb/results/pmlb_results_smoke.csv --sample_rows 20 --n_trees_to_refine 1
 ```
 
 再用默认推荐配置跑完整个数据集列表：
 
 ```bash
-PYTHONPATH=. .venv/bin/python pmlb_batch_inference.py --device cuda:1
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device cuda:1
 ```
 
 默认会遍历全部数据集，并且每个数据集读取前 200 个样本；测试命令只是把参数调小来快速验证。
 
-按 Feynman、Strogatz 和其余黑盒数据集汇总 `pmlb_results.csv` 的统计结果：
+按 Feynman、Strogatz 和其余黑盒数据集汇总 `experiments/pmlb/results/pmlb_results.csv` 的统计结果：
 
 ```bash
-PYTHONPATH=. .venv/bin/python pmlb_results_summary.py --input_csv pmlb_results.csv --output_csv pmlb_results_summary.csv
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_results_summary.py --input_csv experiments/pmlb/results/pmlb_results.csv --output_csv experiments/pmlb/results/pmlb_results_summary.csv
 ```
 
 You can also check the demo website where you can play with the model without a single line of code [here](https://symbolicregression.metademolab.com/).
