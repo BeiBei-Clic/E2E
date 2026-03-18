@@ -2,7 +2,7 @@ import argparse
 import csv
 import os
 
-from experiments.pmlb.pmlb_inference import load_model, run_inference
+from experiments.pmlb.pmlb_inference import load_model, load_pmlb_dataset, run_inference
 
 
 RESULT_FIELDS = (
@@ -76,6 +76,15 @@ def main():
         writer.writeheader()
 
         for dataset_name in dataset_names:
+            _, _, X, _ = load_pmlb_dataset(
+                dataset_name=dataset_name,
+                datasets_dir=args.datasets_dir,
+                max_rows=args.max_rows,
+            )
+            if X.shape[1] > 10:
+                print(f"{dataset_name}: skipped (n_features={X.shape[1]} > 10)")
+                continue
+
             row = {field: "" for field in RESULT_FIELDS}
             row.update({"dataset": dataset_name, "status": "ok"})
             try:

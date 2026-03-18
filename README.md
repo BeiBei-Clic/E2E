@@ -59,7 +59,7 @@ PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --output_
 再用默认推荐配置跑完整个数据集列表：
 
 ```bash
-PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device cuda:1
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device cuda:0
 ```
 
 默认会遍历全部数据集，并且每个数据集读取前 200 个样本；测试命令只是把参数调小来快速验证。
