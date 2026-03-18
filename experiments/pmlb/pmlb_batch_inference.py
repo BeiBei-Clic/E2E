@@ -54,6 +54,17 @@ def build_parser():
     return parser
 
 
+def load_existing_results(output_path):
+    """Load existing results to skip completed datasets."""
+    completed = set()
+    if os.path.exists(output_path):
+        with open(output_path, "r", newline="") as handle:
+            reader = csv.DictReader(handle)
+            for row in reader:
+                completed.add(row["dataset"])
+    return completed
+
+
 def main():
     args = build_parser().parse_args()
     if args.sample_rows is not None:
@@ -71,11 +82,21 @@ def main():
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
-    with open(output_path, "w", newline="") as handle:
+    # Load existing results to skip completed datasets
+    completed = load_existing_results(output_path)
+
+    # Determine write mode: append if file exists, otherwise write new
+    write_mode = "a" if completed else "w"
+
+    with open(output_path, write_mode, newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=RESULT_FIELDS)
-        writer.writeheader()
+        if write_mode == "w":
+            writer.writeheader()
 
         for dataset_name in dataset_names:
+            if dataset_name in completed:
+                print(f"{dataset_name}: skipped (already completed)")
+                continue
             _, _, X, _ = load_pmlb_dataset(
                 dataset_name=dataset_name,
                 datasets_dir=args.datasets_dir,
