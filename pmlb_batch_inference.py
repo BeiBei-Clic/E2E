@@ -8,15 +8,15 @@ from pmlb_inference import load_model, run_inference
 RESULT_FIELDS = (
     "dataset",
     "status",
-    "rows",
     "n_features",
     "refinement_type",
-    "expr",
     "r2",
     "rmse",
     "complexity",
+    "expr",
     "seconds",
     "error",
+    "rows",
 )
 
 
@@ -45,6 +45,7 @@ def build_parser():
     parser.add_argument("--model_path", default="model.pt")
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--output_csv", default="pmlb_results.csv")
+    parser.add_argument("--sample_rows", type=int, default=None)
     parser.add_argument("--max_rows", type=int, default=200)
     parser.add_argument("--max_input_points", type=int, default=200)
     parser.add_argument("--n_trees_to_refine", type=int, default=100)
@@ -55,6 +56,10 @@ def build_parser():
 
 def main():
     args = build_parser().parse_args()
+    if args.sample_rows is not None:
+        args.max_rows = args.sample_rows
+        args.max_input_points = args.sample_rows
+
     dataset_names = list_regression_datasets(args.datasets_dir)
     if args.dataset_limit is not None:
         dataset_names = dataset_names[: args.dataset_limit]

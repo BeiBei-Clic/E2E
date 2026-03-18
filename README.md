@@ -48,19 +48,19 @@ PYTHONPATH=. .venv/bin/python -m jupyter nbconvert --to notebook --execute --inp
 PYTHONPATH=. .venv/bin/python pmlb_inference.py
 ```
 
-先用最小参数快速跑一遍全量数据集检查 CSV 保存链路：
+先用更小参数快速跑一遍全量数据集列表，检查 CSV 保存链路：
 
 ```bash
-PYTHONPATH=. .venv/bin/python pmlb_batch_inference.py --output_csv pmlb_results_smoke.csv --max_rows 20 --max_input_points 20 --n_trees_to_refine 1
+PYTHONPATH=. .venv/bin/python pmlb_batch_inference.py --output_csv pmlb_results_smoke.csv --sample_rows 20 --n_trees_to_refine 1
 ```
 
-再按原脚本配置跑完整个数据集：
+再用默认推荐配置跑完整个数据集列表：
 
 ```bash
-PYTHONPATH=. .venv/bin/python pmlb_batch_inference.py --output_csv pmlb_results.csv --max_rows 200 --max_input_points 200 --n_trees_to_refine 100
+PYTHONPATH=. .venv/bin/python pmlb_batch_inference.py --device cuda:1
 ```
 
-如果要指定显卡，可以额外传 `--device cuda:0` 这类参数。
+默认会遍历全部数据集，并且每个数据集读取前 200 个样本；测试命令只是把参数调小来快速验证。
 
 You can also check the demo website where you can play with the model without a single line of code [here](https://symbolicregression.metademolab.com/).
 
