@@ -31,6 +31,23 @@ To launch evaluation, please use the flag ```reload_checkpoint``` to specify in 
 
 We include a small notebook that loads a pre-trained model you can play with in ```Example.ipynb```
 
+## 用 uv 跑通预训练示例
+
+推理接口在 `symbolicregression.model.SymbolicTransformerRegressor`。
+
+```bash
+uv venv -p /usr/bin/python3.10 .venv
+UV_CACHE_DIR=/tmp/uv-cache uv pip install --python .venv/bin/python numpy scipy sympy requests scikit-learn pandas numexpr matplotlib seaborn tqdm ipython jupyter sympytorch torch torchvision torchaudio
+env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy curl -L https://dl.fbaipublicfiles.com/symbolicregression/model1.pt -o model.pt
+PYTHONPATH=. .venv/bin/python -m jupyter nbconvert --to notebook --execute --inplace Example.ipynb
+```
+
+用本地 `pmlb/datasets` 中的一个数据集抽样 200 行做推理测试：
+
+```bash
+PYTHONPATH=. .venv/bin/python pmlb_inference.py
+```
+
 You can also check the demo website where you can play with the model without a single line of code [here](https://symbolicregression.metademolab.com/).
 
 ## Multinode training

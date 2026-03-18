@@ -100,7 +100,7 @@ def compute_metrics(infos, metrics="r2"):
                     results[metric].append(np.nan)
                 else:
                     try:
-                        results[metric].append(mean_squared_error(true[i], predicted[i], squared=False))
+                        results[metric].append(mean_squared_error(true[i], predicted[i]) ** 0.5)
                     except Exception as e:
                         results[metric].append(np.nan)
         elif metric == "_complexity":
