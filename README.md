@@ -48,6 +48,20 @@ PYTHONPATH=. .venv/bin/python -m jupyter nbconvert --to notebook --execute --inp
 PYTHONPATH=. .venv/bin/python pmlb_inference.py
 ```
 
+先用最小参数快速跑一遍全量数据集检查 CSV 保存链路：
+
+```bash
+PYTHONPATH=. .venv/bin/python pmlb_batch_inference.py --device cuda:0 --output_csv pmlb_results_smoke.csv --max_rows 20 --max_input_points 20 --n_trees_to_refine 1
+```
+
+再按原脚本配置跑完整个数据集：
+
+```bash
+PYTHONPATH=. .venv/bin/python pmlb_batch_inference.py --device cuda:0 --output_csv pmlb_results.csv --max_rows 200 --max_input_points 200 --n_trees_to_refine 100
+```
+
+如果要指定显卡，可以额外传 `--device cuda:0` 这类参数。
+
 You can also check the demo website where you can play with the model without a single line of code [here](https://symbolicregression.metademolab.com/).
 
 ## Multinode training
