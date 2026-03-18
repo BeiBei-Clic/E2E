@@ -10,7 +10,6 @@ from scipy.optimize import minimize
 import numpy as np
 import time
 import torch
-from functorch import grad
 from functools import partial
 import traceback
 
@@ -172,6 +171,8 @@ class BFGSRefinement():
             mse = (self.y -y_tilde).pow(2).mean().div(2)
             return mse
 
+        objective_grad = torch.func.grad(objective_torch)
+
         def objective_numpy(coeffs):
             """
             Return the objective value as a float (for scipy).
@@ -185,7 +186,7 @@ class BFGSRefinement():
             """
             if not isinstance(coeffs, torch.Tensor):
                 coeffs = torch.tensor(coeffs, dtype=torch.float64, requires_grad=True)
-            grad_obj = grad(objective_torch)(coeffs)
+            grad_obj = objective_grad(coeffs)
             return grad_obj.detach().numpy()
     
         objective_numpy_timed = TimedFun(objective_numpy, stop_after=stop_after)

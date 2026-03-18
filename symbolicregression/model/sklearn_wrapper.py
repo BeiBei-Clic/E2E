@@ -150,7 +150,7 @@ class SymbolicTransformerRegressor(BaseEstimator):
                 if math.isnan(score): 
                     score = np.inf if metric.startswith("_") else -np.inf
             else:
-                score = candidates[metric]
+                score = candidate[metric]
             scores.append(score)
         ordered_idx = np.argsort(scores)  
         if not metric.startswith("_"): ordered_idx=list(reversed(ordered_idx))
@@ -265,31 +265,26 @@ class SymbolicTransformerRegressor(BaseEstimator):
         else: return best_trees
 
 
-    def predict(self, X, refinement_type=None, tree_idx=0, batch=False):        
-
+    def predict(self, X, refinement_type=None, tree_idx=0, batch=False):
         if not isinstance(X, list):
             X = [X]
         for i in range(len(X)):
             X[i]=X[i][:,self.top_k_features[i]]
 
-        res = []
-        if batch:
-            tree = self.retrieve_tree(refinement_type=refinement_type, dataset_idx=-1)
-            for tree_idx in range(len(tree)):
-                X_idx = X[tree_idx]
-                if tree[tree_idx] is None: 
-                    res.append(None)
-                else:   
-                    numexpr_fn = self.model.env.simplifier.tree_to_numexpr_fn(tree[tree_idx])
-                    y = numexpr_fn(X_idx)[:,0]
-                    res.append(y)
-            return res
-        else:
-            X_idx = X[tree_idx]
-            tree = self.retrieve_tree(refinement_type=refinement_type, dataset_idx=tree_idx)
-            if tree is not None:
-                numexpr_fn = self.model.env.simplifier.tree_to_numexpr_fn(tree)
-                y = numexpr_fn(X_idx)[:,0]
-                return y
-            else:
-                return None
+        dataset_indices = range(len(X)) if batch else [tree_idx]
+        trees = self.retrieve_tree(
+            refinement_type=refinement_type,
+            dataset_idx=-1 if batch else tree_idx,
+        )
+        if not batch:
+            trees = [trees]
+
+        predictions = []
+        for dataset_idx, tree in zip(dataset_indices, trees):
+            if tree is None:
+                predictions.append(None)
+                continue
+            numexpr_fn = self.model.env.simplifier.tree_to_numexpr_fn(tree)
+            predictions.append(numexpr_fn(X[dataset_idx])[:,0])
+
+        return predictions if batch else predictions[0]

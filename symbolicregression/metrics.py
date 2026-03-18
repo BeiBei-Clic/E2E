@@ -9,6 +9,7 @@ from collections import defaultdict
 import numpy as np
 import scipy
 
+
 def compute_metrics(infos, metrics="r2"):
     results = defaultdict(list)
     if metrics == "":
@@ -25,27 +26,22 @@ def compute_metrics(infos, metrics="r2"):
                 predicted[i]=predicted[i][:,0]
             assert true[i].shape == predicted[i].shape, "Problem with shapes: {}, {}".format(true[i].shape, predicted[i].shape)
 
+    def append_prediction_metric(metric_name, fn):
+        true, predicted = infos["true"], infos["predicted"]
+        for i in range(len(true)):
+            if predicted[i] is None or np.isnan(predicted[i]).any():
+                results[metric_name].append(np.nan)
+                continue
+            try:
+                results[metric_name].append(fn(true[i], predicted[i]))
+            except Exception:
+                results[metric_name].append(np.nan)
+
     for metric in metrics.split(","):
         if metric == "r2":
-            true, predicted = infos["true"], infos["predicted"]
-            for i in range(len(true)):
-                if predicted[i] is None or np.isnan(np.min(predicted[i])):
-                    results[metric].append(np.nan)
-                else:
-                    try:
-                        results[metric].append(r2_score(true[i], predicted[i]))
-                    except Exception as e:
-                        results[metric].append(np.nan)
-        if metric == "r2_zero":
-            true, predicted = infos["true"], infos["predicted"]
-            for i in range(len(true)):
-                if predicted[i] is None or np.isnan(np.min(predicted[i])):
-                    results[metric].append(np.nan)
-                else:
-                    try:
-                        results[metric].append(max(0, r2_score(true[i], predicted[i])))
-                    except Exception as e:
-                        results[metric].append(np.nan)
+            append_prediction_metric(metric, lambda truth, prediction: r2_score(truth, prediction))
+        elif metric == "r2_zero":
+            append_prediction_metric(metric, lambda truth, prediction: max(0, r2_score(truth, prediction)))
 
         elif metric.startswith("accuracy_l1"):
             if metric == "accuracy_l1":
@@ -60,49 +56,25 @@ def compute_metrics(infos, metrics="r2"):
                 rtol = float(metric.split("_")[-1])
                 tolerance_point = 0.95 #float(metric.split("_")[-1])
 
-            true, predicted = infos["true"], infos["predicted"]
-            for i in range(len(true)):
-                if predicted[i] is None or np.isnan(np.min(predicted[i])):
-                    results[metric].append(np.nan)
-                else:
-                    try:
-                        is_close = np.isclose(predicted[i], true[i], atol=atol, rtol=rtol)
-                        results[metric].append(float(is_close.mean()>=tolerance_point))
-                    except Exception as e:
-                        results[metric].append(np.nan)
+            append_prediction_metric(
+                metric,
+                lambda truth, prediction: float(
+                    np.isclose(prediction, truth, atol=atol, rtol=rtol).mean() >= tolerance_point
+                ),
+            )
 
         elif metric == "_mse":
-            true, predicted = infos["true"], infos["predicted"]
-            for i in range(len(true)):
-                if predicted[i] is None or np.isnan(np.min(predicted[i])):
-                    results[metric].append(np.nan)
-                else:
-                    try:
-                        results[metric].append(mean_squared_error(true[i], predicted[i]))
-                    except Exception as e:
-                        results[metric].append(np.nan)
+            append_prediction_metric(metric, lambda truth, prediction: mean_squared_error(truth, prediction))
         elif metric == "_nmse":
-            true, predicted = infos["true"], infos["predicted"]
-            for i in range(len(true)):
-                if predicted[i] is None or np.isnan(np.min(predicted[i])):
-                    results[metric].append(np.nan)
-                else:
-                    try:
-                        mean_y = np.mean(true[i])
-                        NMSE = (np.mean(np.square(true[i]- predicted[i])))/mean_y
-                        results[metric].append(NMSE)
-                    except Exception as e:
-                        results[metric].append(np.nan)
+            append_prediction_metric(
+                metric,
+                lambda truth, prediction: np.mean(np.square(truth - prediction)) / np.mean(truth),
+            )
         elif metric == "_rmse":
-            true, predicted = infos["true"], infos["predicted"]
-            for i in range(len(true)):
-                if predicted[i] is None or np.isnan(np.min(predicted[i])):
-                    results[metric].append(np.nan)
-                else:
-                    try:
-                        results[metric].append(mean_squared_error(true[i], predicted[i]) ** 0.5)
-                    except Exception as e:
-                        results[metric].append(np.nan)
+            append_prediction_metric(
+                metric,
+                lambda truth, prediction: np.sqrt(mean_squared_error(truth, prediction)),
+            )
         elif metric == "_complexity":
             if "predicted_tree" not in infos: 
                 results[metric].extend([np.nan for _ in range(len(infos["true"]))])
@@ -127,36 +99,19 @@ def compute_metrics(infos, metrics="r2"):
                     results[metric].append(len(predicted_tree[i].prefix().split(",")) - len(tree[i].prefix().split(",")))
 
         elif metric == "is_symbolic_solution":
+            def symbolic_solution_score(truth, prediction):
+                diff = truth - prediction
+                div = truth / (prediction + 1e-100)
+                std_diff = scipy.linalg.norm(np.abs(diff - diff.mean(0)))
+                std_div = scipy.linalg.norm(np.abs(div - div.mean(0)))
+                return 1.0 if std_diff < 1e-10 and std_div < 1e-10 else 0.0
 
-            true, predicted = infos["true"], infos["predicted"]
-            for i in range(len(true)):
-                if predicted[i] is None or np.isnan(np.min(predicted[i])):
-                    results[metric].append(np.nan)
-                else:
-                    try:
-                        diff = true[i] - predicted[i]
-                        div = true[i] / (predicted[i] + 1e-100)
-                        std_diff = scipy.linalg.norm(
-                            np.abs(diff - diff.mean(0))
-                        )
-                        std_div = scipy.linalg.norm(
-                            np.abs(div - div.mean(0))
-                        )
-                        if std_diff<1e-10 and std_div<1e-10: results[metric].append(1.0)
-                        else: results[metric].append(0.0)
-                    except Exception as e:
-                        results[metric].append(np.nan)
+            append_prediction_metric(metric, symbolic_solution_score)
 
         elif metric == "_l1_error":
-            true, predicted = infos["true"], infos["predicted"]
-            for i in range(len(true)):
-                if predicted[i] is None or np.isnan(np.min(predicted[i])):
-                    results[metric].append(np.nan)
-                else:
-                    try:
-                        l1_error = np.mean(np.abs((true[i] - predicted[i])))
-                        if np.isnan(l1_error): results[metric].append(np.inf)
-                        else: results[metric].append(l1_error)
-                    except Exception as e:
-                        results[metric].append(np.nan)
+            def l1_error(truth, prediction):
+                error = np.mean(np.abs(truth - prediction))
+                return np.inf if np.isnan(error) else error
+
+            append_prediction_metric(metric, l1_error)
     return results

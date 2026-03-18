@@ -7,6 +7,19 @@ import symbolicregression.model
 from symbolicregression.metrics import compute_metrics
 
 
+def format_expr(tree):
+    expr = tree.infix()
+    replacements = {
+        " add ": " + ",
+        " sub ": " - ",
+        " mul ": " * ",
+        " pow ": " ** ",
+    }
+    for old, new in replacements.items():
+        expr = expr.replace(old, new)
+    return expr
+
+
 dataset_name = "feynman_III_10_19"
 dataset_path = f"pmlb/datasets/{dataset_name}/{dataset_name}.tsv.gz"
 
@@ -31,14 +44,15 @@ metrics = compute_metrics(
         "predicted": [y_pred],
         "predicted_tree": [tree_info["predicted_tree"]],
     },
-    metrics="r2,_rmse",
+    metrics="r2,_rmse,_complexity",
 )
 elapsed = time.time() - start
 
 print(f"dataset={dataset_name}")
 print(f"rows={len(df)}")
 print(f"refinement_type={tree_info['refinement_type']}")
-print(f"expr={tree_info['relabed_predicted_tree'].infix()}")
+print(f"expr={format_expr(tree_info['relabed_predicted_tree'])}")
 print(f"r2={metrics['r2'][0]}")
 print(f"rmse={metrics['_rmse'][0]}")
+print(f"complexity={metrics['_complexity'][0]}")
 print(f"seconds={elapsed}")
