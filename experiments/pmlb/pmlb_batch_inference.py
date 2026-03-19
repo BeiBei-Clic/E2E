@@ -13,10 +13,10 @@ RESULT_FIELDS = (
     "r2",
     "rmse",
     "complexity",
-    "expr",
     "seconds",
     "error",
-    "rows",
+    "noise_strength",
+    "expr",
 )
 
 
@@ -44,29 +44,55 @@ def build_parser():
     parser.add_argument("--datasets_dir", default="pmlb/datasets")
     parser.add_argument("--model_path", default="model.pt")
     parser.add_argument("--device", default="cpu")
-    parser.add_argument("--output_csv", default="experiments/pmlb/results/pmlb_results.csv")
+    parser.add_argument("--output_csv", default=None)
     parser.add_argument("--sample_rows", type=int, default=None)
     parser.add_argument("--max_rows", type=int, default=200)
     parser.add_argument("--max_input_points", type=int, default=200)
     parser.add_argument("--n_trees_to_refine", type=int, default=100)
     parser.add_argument("--dataset_limit", type=int, default=None)
     parser.add_argument("--rescale", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--noise_strength", type=float, default=0.0)
+    parser.add_argument("--noise_seed", type=int, default=0)
     return parser
 
 
+def format_noise_strength_for_filename(noise_strength):
+    return f"{noise_strength:g}"
+
+
+def default_output_csv(noise_strength):
+    noise_token = format_noise_strength_for_filename(noise_strength)
+    return (
+        "experiments/pmlb/results/"
+        f"pmlb_batch_inference_noise_{noise_token}.csv"
+    )
+
+
+def normalize_noise_strength(value):
+    if value in (None, ""):
+        return 0.0
+    return float(value)
+
+
 def load_existing_results(output_path):
-    """Load existing results to skip completed datasets."""
     completed = set()
     if os.path.exists(output_path):
         with open(output_path, "r", newline="") as handle:
             reader = csv.DictReader(handle)
             for row in reader:
-                completed.add(row["dataset"])
+                completed.add(
+                    (
+                        row["dataset"],
+                        normalize_noise_strength(row.get("noise_strength")),
+                    )
+                )
     return completed
 
 
 def main():
     args = build_parser().parse_args()
+    if args.noise_strength < 0:
+        raise ValueError("noise_strength must be non-negative.")
     if args.sample_rows is not None:
         args.max_rows = args.sample_rows
         args.max_input_points = args.sample_rows
@@ -77,16 +103,13 @@ def main():
 
     model = load_model(args.model_path, device=args.device)
 
-    output_path = args.output_csv
+    output_path = args.output_csv or default_output_csv(args.noise_strength)
     output_dir = os.path.dirname(output_path)
     if output_dir:
         os.makedirs(output_dir, exist_ok=True)
 
-    # Load existing results to skip completed datasets
     completed = load_existing_results(output_path)
-
-    # Determine write mode: append if file exists, otherwise write new
-    write_mode = "a" if completed else "w"
+    write_mode = "a" if os.path.exists(output_path) and os.path.getsize(output_path) > 0 else "w"
 
     with open(output_path, write_mode, newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=RESULT_FIELDS)
@@ -94,8 +117,12 @@ def main():
             writer.writeheader()
 
         for dataset_name in dataset_names:
-            if dataset_name in completed:
-                print(f"{dataset_name}: skipped (already completed)")
+            completed_key = (dataset_name, args.noise_strength)
+            if completed_key in completed:
+                print(
+                    f"{dataset_name}: skipped "
+                    f"(already completed for noise_strength={args.noise_strength:g})"
+                )
                 continue
             _, _, X, _ = load_pmlb_dataset(
                 dataset_name=dataset_name,
@@ -107,7 +134,13 @@ def main():
                 continue
 
             row = {field: "" for field in RESULT_FIELDS}
-            row.update({"dataset": dataset_name, "status": "ok"})
+            row.update(
+                {
+                    "dataset": dataset_name,
+                    "status": "ok",
+                    "noise_strength": args.noise_strength,
+                }
+            )
             try:
                 result = run_inference(
                     dataset_name=dataset_name,
@@ -117,6 +150,8 @@ def main():
                     max_input_points=args.max_input_points,
                     n_trees_to_refine=args.n_trees_to_refine,
                     rescale=args.rescale,
+                    noise_strength=args.noise_strength,
+                    noise_seed=args.noise_seed,
                 )
                 row.update({field: result[field] for field in RESULT_FIELDS if field in result})
             except Exception as exc:

@@ -1,6 +1,7 @@
 import argparse
 import time
 
+import numpy as np
 import pandas as pd
 import torch
 
@@ -30,6 +31,16 @@ def load_pmlb_dataset(dataset_name, datasets_dir="pmlb/datasets", max_rows=200):
     X = df.drop(columns=["target"]).to_numpy(dtype=float)
     y = df["target"].to_numpy(dtype=float)
     return dataset_path, df, X, y
+
+
+def apply_target_noise(y, noise_strength=0.0, noise_seed=0):
+    if noise_strength < 0:
+        raise ValueError("noise_strength must be non-negative.")
+    if noise_strength == 0:
+        return y
+    rng = np.random.default_rng(noise_seed)
+    noise = rng.normal(0, noise_strength, size=y.shape)
+    return y * (1 + noise)
 
 
 def resolve_device(device):
@@ -62,11 +73,18 @@ def run_inference(
     max_input_points=200,
     n_trees_to_refine=100,
     rescale=True,
+    noise_strength=0.0,
+    noise_seed=0,
 ):
     dataset_path, df, X, y = load_pmlb_dataset(
         dataset_name=dataset_name,
         datasets_dir=datasets_dir,
         max_rows=max_rows,
+    )
+    y_to_fit = apply_target_noise(
+        y,
+        noise_strength=noise_strength,
+        noise_seed=noise_seed,
     )
 
     start = time.time()
@@ -76,7 +94,7 @@ def run_inference(
         n_trees_to_refine=n_trees_to_refine,
         rescale=rescale,
     )
-    est.fit(X, y)
+    est.fit(X, y_to_fit)
     tree_info = est.retrieve_tree(with_infos=True)
     y_pred = est.predict(X, refinement_type=tree_info["refinement_type"])
     metrics = compute_metrics(
@@ -100,6 +118,7 @@ def run_inference(
         "rmse": metrics["_rmse"][0],
         "complexity": metrics["_complexity"][0],
         "seconds": elapsed,
+        "noise_strength": noise_strength,
     }
 
 
@@ -113,6 +132,8 @@ def build_parser():
     parser.add_argument("--max_input_points", type=int, default=200)
     parser.add_argument("--n_trees_to_refine", type=int, default=100)
     parser.add_argument("--rescale", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--noise_strength", type=float, default=0.0)
+    parser.add_argument("--noise_seed", type=int, default=0)
     return parser
 
 
@@ -127,6 +148,8 @@ def main():
         max_input_points=args.max_input_points,
         n_trees_to_refine=args.n_trees_to_refine,
         rescale=args.rescale,
+        noise_strength=args.noise_strength,
+        noise_seed=args.noise_seed,
     )
 
     print(f"dataset={result['dataset']}")
@@ -139,6 +162,7 @@ def main():
     print(f"rmse={result['rmse']}")
     print(f"complexity={result['complexity']}")
     print(f"seconds={result['seconds']}")
+    print(f"noise_strength={result['noise_strength']}")
 
 
 if __name__ == "__main__":

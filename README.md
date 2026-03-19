@@ -53,7 +53,7 @@ PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_inference.py
 先用更小参数快速跑一遍全量数据集列表，检查 CSV 保存链路：
 
 ```bash
-PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --output_csv experiments/pmlb/results/pmlb_results_smoke.csv --sample_rows 20 --n_trees_to_refine 1
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device cpu --output_csv experiments/pmlb/results/pmlb_batch_inference_noise_0_smoke.csv --sample_rows 20 --dataset_limit 2 --n_trees_to_refine 1 --noise_strength 0
 ```
 
 再用默认推荐配置跑完整个数据集列表：
@@ -62,12 +62,18 @@ PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --output_
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device cuda:0
 ```
 
-默认会遍历全部数据集，并且每个数据集读取前 200 个样本；测试命令只是把参数调小来快速验证。
-
-按 Feynman、Strogatz 和其余黑盒数据集汇总 `experiments/pmlb/results/pmlb_results.csv` 的统计结果：
+如果要跑带噪声实验，额外传入噪声强度和随机种子：
 
 ```bash
-PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_results_summary.py --input_csv experiments/pmlb/results/pmlb_results.csv --output_csv experiments/pmlb/results/pmlb_results_summary.csv
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device cuda:3 --noise_strength 0.1 --noise_seed 0
+```
+
+默认会遍历全部数据集，并且每个数据集读取前 200 个样本；测试命令只是把参数调小来快速验证。
+
+按四种噪声强度分别汇总 Feynman、Strogatz 和其余黑盒数据集的统计结果：
+
+```bash
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_results_summary.py --input_csvs experiments/pmlb/results/pmlb_results.csv experiments/pmlb/results/pmlb_batch_inference_noise_0.001.csv experiments/pmlb/results/pmlb_batch_inference_noise_0.01.csv experiments/pmlb/results/pmlb_batch_inference_noise_0.1.csv --output_csv experiments/pmlb/results/pmlb_results_summary.csv
 ```
 
 You can also check the demo website where you can play with the model without a single line of code [here](https://symbolicregression.metademolab.com/).
