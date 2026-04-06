@@ -8,5 +8,6 @@ notebooks/*
 model.pt
 datasets
 result
+.codex
 
 

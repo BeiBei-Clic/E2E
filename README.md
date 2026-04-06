@@ -76,6 +76,12 @@ PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device 
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_results_summary.py --input_csvs experiments/pmlb/results/pmlb_results.csv experiments/pmlb/results/pmlb_batch_inference_noise_0.001.csv experiments/pmlb/results/pmlb_batch_inference_noise_0.01.csv experiments/pmlb/results/pmlb_batch_inference_noise_0.1.csv --output_csv experiments/pmlb/results/pmlb_results_summary.csv
 ```
 
+如果已经有 `experiments/pmlb/E2E_results/` 下的原始推理 CSV，可以先把表达式做 SymPy 化简，再按化简后的表达式重算 `r2`、`rmse` 和原口径 `complexity`：
+
+```bash
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_simplify_results.py --input_csvs experiments/pmlb/E2E_results/pmlb_results.csv experiments/pmlb/E2E_results/pmlb_batch_inference_noise_0.001.csv experiments/pmlb/E2E_results/pmlb_batch_inference_noise_0.01.csv experiments/pmlb/E2E_results/pmlb_batch_inference_noise_0.1.csv && PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_results_summary.py --input_csvs experiments/pmlb/E2E_results/pmlb_results_simplified.csv experiments/pmlb/E2E_results/pmlb_batch_inference_noise_0.001_simplified.csv experiments/pmlb/E2E_results/pmlb_batch_inference_noise_0.01_simplified.csv experiments/pmlb/E2E_results/pmlb_batch_inference_noise_0.1_simplified.csv --output_csv experiments/pmlb/E2E_results/E2E_pmlb_results_summary_simplified.csv
+```
+
 You can also check the demo website where you can play with the model without a single line of code [here](https://symbolicregression.metademolab.com/).
 
 ## Multinode training
