@@ -12,7 +12,7 @@ mkdir -p logs
 CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_expression_encoder.py \
     > logs/enc_mlm.log 2>&1 &
 
-# 监控 val loss 曲线（每 eval 打印 train_ema / val / best / bad / lr / 耗时）
+# 监控：每 log_every(100) 步打印 train_ema/lr，每 eval_every(2000) 步打印 val/best
 tail -f logs/enc_mlm.log
 ```
 
@@ -27,7 +27,14 @@ pkill -9 -f train_expression_encoder.py
 # 查看进程 / 确认是否已退出
 pgrep -af train_expression_encoder.py
 ```
-> 中途停会保留**最近一次 eval 点**的 `best.pth`/`last.pth`（每 `eval_every` 步存一次），不会丢太多进度。当前脚本未做断点续训，重启从 step 0 开始。
+> 中途停会保留**最近一次 eval 点**的 `best.pth`/`last.pth`（每 `eval_every` 步存一次，含 model/optimizer/scheduler/step 等完整状态）。
+
+断点续训（从 checkpoint 恢复 model/optimizer/scheduler/step/best，无缝接续）：
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_expression_encoder.py \
+    --resume checkpoints/expression_encoder/last.pth > logs/enc_mlm_resume.log 2>&1 &
+```
+> 从 `last.pth` 的下一步起续训（模型权重 + 优化器动量 + lr 位置 + best/bad 全恢复）；数据序列重新在线生成（不影响续训）。也可 `--resume .../best.pth` 从最优那步续。
 
 其它启动方式：
 ```bash
@@ -49,18 +56,21 @@ CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 train_expression_encoder.py
 | `--mask_prob` | 0.15 | MLM 遮挡比例 |
 | `--lr` | 1e-4 | 峰值学习率（warmup+cosine；DDP 梯度按 SUM，配合此 lr 即线性 scaling） |
 | `--warmup` | 1000 | warmup 步数 |
-| `--eval_every` | 2000 | 每 N 步 eval 验证集 loss |
+| `--eval_every` | 2000 | 每 N 步 eval 验证集 loss（并存 best/last + 打印 val） |
+| `--log_every` | 100 | 每 N 步打印 train_ema/lr（不 eval，开销可忽略，便于看进度） |
 | `--patience` | 20 | val loss 无 best 更新的早停耐心 |
 | `--val_size` | 1024 | 验证集表达式数（独立 rng、mask 固定，所有 rank 共享） |
 | `--val_batch` | 128 | 验证集分块大小 |
 | `--out_dir` | `checkpoints/expression_encoder` | checkpoint 输出目录（仅 rank0 写） |
+| `--num_workers` | 4 | 每 rank 后台数据生成进程数（DataLoader 预取，overlap CPU 生成与 GPU 训练；实测 4 已达拐点，8 不更快） |
+| `--resume` | "" | 从 checkpoint 恢复继续训练（如 `checkpoints/expression_encoder/last.pth`） |
 | `--cpu` | off | 强制 CPU（禁用 DDP） |
-| `--seed` | 0 | 随机种子（训练数据用 seed+rank，故每卡见不同数据） |
+| `--seed` | 0 | 随机种子（训练数据用 seed+rank+worker_id，每卡每 worker 见不同数据） |
 
-**产出**：`{out_dir}/best.pth`（最低 val loss）、`last.pth`（最后一个 eval 点）。
+**产出**：`{out_dir}/best.pth`（最低 val loss）、`last.pth`（最后一个 eval 点）。每个 checkpoint 含 `model/optimizer/scheduler/step/best_val/best_step/bad`，支持 `--resume` 无缝续训。
 **收敛（M1）**：val loss 平台、`best` 不再更新（`bad` 涨到 `patience` 自动早停）。
 
-> DDP 说明：每 rank 用 `seed+rank` 独立生成训练数据（数据并行）；验证集固定且所有 rank 相同；checkpoint 与日志仅 rank0 输出。模型用 `MLMEncoder` 包装把 `fwd+proj+CE` 合并成单次 forward，以满足 DDP「一次 forward 覆盖全部参数」的要求。
+> 数据/DDP 说明：`gen_tree_encoded` 只生成表达式树 + 编码、跳过 MLM 用不到的数值点（~6× 快于 `gen_expr`）；`TreeDataset` + `DataLoader(num_workers)` 在后台多进程预取，overlap CPU 生成与 GPU 训练（实测 `num_workers=4` 即达拐点，~0.8s/step）。每 rank 用 `seed+rank`、每 worker 用 `seed+rank+worker_id` 保证数据多样；验证集固定且所有 rank 相同；checkpoint 与日志仅 rank0 输出。`MLMEncoder` 把 `fwd+predict` 合并成单次 forward，满足 DDP「一次 forward 覆盖全部参数」。
 
 ---
 
