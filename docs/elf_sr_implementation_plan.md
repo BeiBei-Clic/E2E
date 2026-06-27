@@ -34,7 +34,7 @@
 2. **expression encoder 从头预训练再 freeze**（放弃 warm-start）—— 最干净，无因果/next-token 历史包袱，无需处理权重结构不匹配的拆解。
 3. **归一化用 ELF 原版 `latent_mean/std`**（离线统计手填）—— 因为 encoder freeze，输出分布固定，固定常数合法；放弃 LayerNorm/running stats 方案。
 4. **数值点 encoder 直接 freeze 现有 `model.pt`** —— condition 不参与去噪数学，对表示质量要求低于 target，白捡现成权重。
-5. **condition 注入用 ELF 原版 prepend clean cond + `cond_seq_mask`** —— 机制现成（`sampling_utils.restore_cond`、`generation.test_generation_cond`），直接搬。
+5. ~~**condition 注入用 ELF 原版 prepend clean cond + `cond_seq_mask`**~~ —— **grilling 修订（2026-06-27）：改用 cross-attention**。prepend 把 cond 拼进主序列会破坏点数无关性（点数撑长主序列 → RoPE 要固定 `max_length` → 点数封顶），对符号回归（评估时大数据集动辄几百上千点）是错配；数值点 encoder 本就是为 cross-attention decoder 设计的（点数只进 K/V，主序列=表达式长度）。改为 denoiser 每 block 插 cross-attn 子层（Q 来自 target，K/V 来自 `cond_emb`，cond 无序不加 RoPE），点数任意、`max_length` 只含 target。`cond_seq_mask` 废除。详见项目记忆 `elf-sr-m3-cross-attention`。
 
 ---
 
@@ -166,7 +166,7 @@ z_0 ~ N(0, I)
 - **先无条件验证（cond=None）→ 里程碑 M2** ✅（2026-06-27）：denoiser 在 expression embedding 空间去噪跑通，末步 unembed 产出合法 expression token。
   - 产物：`flow_matching.py`（核心公式）+ `train_flow_matching.py`（M2 训练：DDP + DataLoader + 双分支 denoise(MSE)/decode(CE) + val_l2 监控 + resume）。
   - smoke：val_l2 40 步 29.9 → 100 步 4.36（warmup 后明确下降）。坑：DDP 需 `find_unused_parameters=True`（M2 `self_cond_proj` unused）；config 实际 `noise_scale=1.0`/`decoder_prob=0.5`（计划曾写错 2.0/0.2）。详见项目记忆 `elf-sr-m2-status`。
-- **加 condition → 里程碑 M3**：数值点 → 表达式，R² 起步。
+- **加 condition → 里程碑 M3**（cross-attention 版，2026-06-27 smoke 通过）：数值点 → 数值点 encoder（`model.pt` freeze）→ `cond_emb` → denoiser cross-attn 注入（弃 prepend，见 1.3 决策 5 修订）。产物 `train_flow_m3.py`（DDP + cross-attn denoiser + 双分支 denoise/decode + correct/shuffled 验证 + bf16 encoder 前向 + 从头训）。denoiser 116.2M（+cross-attn 23.6M）。model.pt 训练分布：1~10 维可变 / 5~200 点可变 / gaussian-uniform / 无噪声（`mw.env.params` 查证）。M3 达标指标：`acc_correct` 超过 M2 的 0.632 **且** `Δcond = acc_correct − acc_shuffled` 显著为正（证明生成依赖输入）。R² 留 Step 7 采样器。坑：`float_encoder.encode` 要 ndarray 不能 `.tolist()`。详见项目记忆 `elf-sr-m3-cross-attention`。
 
 ### Step 7 — 采样器 + 推理
 - 移植 `ELF-pytorch_elf/src/utils/sampling_utils.py`（ODE/SDE step）+ `generation.py`（条件生成主循环）。

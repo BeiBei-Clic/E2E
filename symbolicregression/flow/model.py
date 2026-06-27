@@ -14,7 +14,7 @@ import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
 from .layers import (
-    Attention, BottleneckTextProj, FinalLayer, RMSNorm, SwiGLUFFN,
+    Attention, BottleneckTextProj, CrossAttention, FinalLayer, RMSNorm, SwiGLUFFN,
     TextRotaryEmbeddingFast, TimestepEmbedder,
     DEFAULT_KERNEL_INIT, DEFAULT_BIAS_INIT, NORMAL_INIT_002,
     _make_linear,
@@ -22,10 +22,10 @@ from .layers import (
 
 
 class ELFBlock(nn.Module):
-    """ELF Transformer block."""
+    """ELF Transformer block: self-attn -> cross-attn(cond) -> FFN。"""
 
-    def __init__(self, hidden_size: int, num_heads: int, mlp_ratio: float = 4.0,
-                 attn_drop: float = 0.0, proj_drop: float = 0.0):
+    def __init__(self, hidden_size: int, num_heads: int, cond_dim: int,
+                 mlp_ratio: float = 4.0, attn_drop: float = 0.0, proj_drop: float = 0.0):
         super().__init__()
         self.hidden_size = hidden_size
         self.num_heads = num_heads
@@ -38,16 +38,27 @@ class ELFBlock(nn.Module):
             hidden_size, num_heads, qkv_bias=True, qk_norm=True,
             attn_drop=attn_drop, proj_drop=proj_drop,
         )
+        self.norm_cross = RMSNorm(hidden_size, eps=1e-6)
+        self.cross_attn = CrossAttention(
+            hidden_size, cond_dim, num_heads, qk_norm=True, proj_drop=proj_drop,
+        )
         self.norm2 = RMSNorm(hidden_size, eps=1e-6)
         self.mlp = SwiGLUFFN(hidden_size, mlp_hidden_dim, drop=proj_drop)
 
     def forward(self, x: torch.Tensor, rope_fn: Optional[nn.Module] = None,
                 attention_mask: Optional[torch.Tensor] = None,
+                cond: Optional[torch.Tensor] = None,
+                cond_mask: Optional[torch.Tensor] = None,
                 deterministic: bool = True) -> torch.Tensor:
         x_normed = self.norm1(x)
         attn_out = self.attn(x_normed, rope_fn, attention_mask=attention_mask,
                              deterministic=deterministic)
         x = x + attn_out
+
+        x_normed = self.norm_cross(x)
+        cross_out = self.cross_attn(x_normed, cond, attention_mask=cond_mask,
+                                    deterministic=deterministic)
+        x = x + cross_out
 
         x_normed = self.norm2(x)
         mlp_out = self.mlp(x_normed, deterministic=deterministic)
@@ -126,7 +137,7 @@ class ELF(nn.Module):
         for i in range(depth):
             in_drop_range = q3 > i >= q1
             self.blocks.append(ELFBlock(
-                hidden_size, num_heads, mlp_ratio=mlp_ratio,
+                hidden_size, num_heads, cond_dim=text_encoder_dim, mlp_ratio=mlp_ratio,
                 attn_drop=attn_drop if in_drop_range else 0.0,
                 proj_drop=proj_drop if in_drop_range else 0.0,
             ))
@@ -167,11 +178,17 @@ class ELF(nn.Module):
         x: torch.Tensor,
         t: torch.Tensor,
         attention_mask: Optional[torch.Tensor] = None,
+        cond: Optional[torch.Tensor] = None,
+        cond_mask: Optional[torch.Tensor] = None,
         deterministic: bool = True,
         self_cond_cfg_scale: Optional[torch.Tensor] = None,
         decoder_step_active: Optional[bool] = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """x: (N, S, C) or (N, S, 2C) with self-cond. t: (N,). attention_mask: (N, S), 1=valid.
+
+        cond: (N, M, cond_dim) 数值点 condition embedding (cross-attn K/V 源, 可变长 M)。
+        cond_mask: (N, M) cond valid (1=有效数值点), 屏蔽 pad 点。cond 不参与主序列、
+        不加噪 (clean), 仅作 cross-attn 的 K/V; M3 弃 prepend, 故 max_length 只含 target。
 
         Runtime contract: ``S`` must equal ``max_length`` (pad inputs), so the
         total length ``prefix + S`` matches the precomputed RoPE buffer; and the
@@ -220,14 +237,15 @@ class ELF(nn.Module):
         use_checkpoint = self.gradient_checkpointing and self.training and torch.is_grad_enabled()
         for block in self.blocks:
             if use_checkpoint:
-                def _block_forward(hidden: torch.Tensor, block: ELFBlock = block) -> torch.Tensor:
+                def _block_forward(hidden: torch.Tensor, c: torch.Tensor, cm: torch.Tensor,
+                                   block: ELFBlock = block) -> torch.Tensor:
                     return block(hidden, rope_fn=self.feat_rope, attention_mask=attention_mask,
-                                 deterministic=deterministic)
+                                 cond=c, cond_mask=cm, deterministic=deterministic)
 
-                x = checkpoint(_block_forward, x, use_reentrant=False)
+                x = checkpoint(_block_forward, x, cond, cond_mask, use_reentrant=False)
             else:
                 x = block(x, rope_fn=self.feat_rope, attention_mask=attention_mask,
-                          deterministic=deterministic)
+                          cond=cond, cond_mask=cond_mask, deterministic=deterministic)
 
         x = x[:, prefix_len + model_mode_offset:]
 

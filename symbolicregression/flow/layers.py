@@ -224,6 +224,47 @@ class Attention(nn.Module):
         return x
 
 
+class CrossAttention(nn.Module):
+    """Cross-attention: query from target sequence, key/value from cond sequence.
+
+    cond (数值点 embedding) 是无序集合, 不加 RoPE。
+    attention_mask: (B, M) cond valid (1=有效数值点, 0=pad 点)。
+    """
+
+    def __init__(self, dim: int, cond_dim: int, num_heads: int,
+                 qk_norm: bool = True, proj_drop: float = 0.0):
+        super().__init__()
+        self.dim = dim
+        self.num_heads = num_heads
+        head_dim = dim // num_heads
+        self.q_proj = _make_linear(dim, dim, bias=True)
+        self.k_proj = _make_linear(cond_dim, dim, bias=True)
+        self.v_proj = _make_linear(cond_dim, dim, bias=True)
+        self.q_norm = RMSNorm(head_dim) if qk_norm else nn.Identity()
+        self.k_norm = RMSNorm(head_dim) if qk_norm else nn.Identity()
+        self.proj = _make_linear(dim, dim, bias=True)
+        self.proj_drop = proj_drop
+
+    def forward(self, x: torch.Tensor, cond: torch.Tensor,
+                attention_mask: Optional[torch.Tensor] = None,
+                deterministic: bool = True) -> torch.Tensor:
+        """x: (B, N, C) target query; cond: (B, M, C_cond) key/value source。"""
+        B, N, C = x.shape
+        M = cond.shape[1]
+        head_dim = self.dim // self.num_heads
+        q = self.q_proj(x).reshape(B, N, self.num_heads, head_dim).permute(0, 2, 1, 3)
+        k = self.k_proj(cond).reshape(B, M, self.num_heads, head_dim).permute(0, 2, 1, 3)
+        v = self.v_proj(cond).reshape(B, M, self.num_heads, head_dim).permute(0, 2, 1, 3)
+        q = self.q_norm(q)
+        k = self.k_norm(k)
+        x = scaled_dot_product_attention(q, k, v, attn_mask=attention_mask)
+        x = x.permute(0, 2, 1, 3).reshape(B, N, C)
+        x = self.proj(x)
+        if self.proj_drop > 0.0:
+            x = F.dropout(x, p=self.proj_drop, training=not deterministic)
+        return x
+
+
 class SwiGLUFFN(nn.Module):
     """SwiGLU Feed-Forward Network."""
 

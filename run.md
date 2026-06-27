@@ -108,7 +108,41 @@ tail -f logs/flow_m2.log   # 每 log_every 步 train_ema, 每 eval_every 步 val
 **产出**：`{out_dir}/{best,last}.pth`（denoiser 权重 + optimizer/scheduler/step/best，支持 `--resume`）。
 **M2 达标**：val_l2（denoise MSE）收敛下降 + decode 分支 unembed 产出多样合法 expression token。
 
-> smoke 已验证（val_l2：40 步 29.9 → 100 步 4.36，loss 明确下降）。M3 将叠 condition（数值点 cond_emb + `cond_seq_mask`，clean cond 不加噪）。
+> smoke 已验证（val_l2：40 步 29.9 → 100 步 4.36，loss 明确下降）。
+
+---
+
+## 阶段 C：denoiser flow matching 条件训练（Step 6 / M3 数值点→表达式）
+
+M3 在 M2 基础上接入 condition：数值点 `(x,y)` → 数值点 encoder（`model.pt`，freeze）→ `cond_emb`，经 denoiser 的 **cross-attention** 注入。**弃用 ELF prepend**（prepend 破坏点数无关性——点数进主序列就要固定 `max_length`），改为每 block `[self-attn → cross-attn → FFN]`：cond 作 cross-attn 的 K/V（点数任意、不加噪、不进 loss），`max_length` 只含 target=128。expression encoder 仍 freeze 提供去噪目标 `x0`。从头训（denoiser 结构变，M2 权重不续）。详见计划文档 Step 6 / 项目记忆 `elf-sr-m3-cross-attention`。
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_flow_m3.py \
+    --num_workers 8 > logs/flow_m3.log 2>&1 &
+tail -f logs/flow_m3.log   # 每 log_every 步 train_ema, 每 eval_every 步 val_l2 + acc_correct + acc_shuffled + Δcond
+```
+
+停止 / 续训同阶段 A/B（`pkill -f train_flow_m3.py`；`--resume {out_dir}/last.pth`）。
+
+**关键参数**（其余 `lr/warmup/eval_every/log_every/patience/val_*/num_workers/resume/cpu/seed` 同阶段 B）
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--point_ckpt` | `model.pt` | freeze 的数值点 encoder（embedder+encoder，18.8M；含 `mw.env.float_encoder` 编码数值点） |
+| `--enc_ckpt` | `checkpoints/expression_encoder/best.pth` | freeze 的 expression encoder（提供 x0） |
+| `--max_length` | 128 | **target only**（cond 经 cross-attn 不占主序列，序列长度回到 M2 水平） |
+| `--out_dir` | `checkpoints/flow_m3` | checkpoint 输出 |
+| `--batch_size` | 128 | 每卡 batch（denoiser 116.2M；序列 128，显存同 M2 ≈7GB/卡） |
+| `--num_workers` | 4 | 每 rank 后台数据生成进程（`gen_expr` 带 `@timeout`，fork worker 下已验证正常） |
+
+> M3 **不归一化 cond**（`cond_emb` 直接喂 cross-attn 的新 `kv_proj`，尺度差 std 0.29 vs target 1 由可学投影吸收）。flow matching 超参（`p_mean/p_std/noise_scale/t_eps/decoder_prob`）同 M2。encoder 前向套 **bf16 autocast**（freeze+no_grad），缓解 M2 已有的 GPU 空闲问题。
+
+**M3 达标**（去风险点，区别于 M2 的关键）：
+- `val_l2`（denoise MSE）下降；
+- `acc_correct`（正确 cond 的 decode acc）超过 M2 水平 **0.632**；
+- **`Δcond = acc_correct − acc_shuffled` 显著为正**——正确 cond 比 batch 内打乱 cond 更准，直接证明生成依赖输入（否则 cross-attn 被无视、两者持平）。
+
+> smoke 已验证（单卡 `num_workers=0/2` 均通；val_l2 4 步 31.5→17.1 下降；可变点数 33~170 / 维度 1~10 正常）。DDP 仍需 `find_unused_parameters=True`（M3 未加 self-cond，`self_cond_proj` unused）。后续 Step 7 再加 self-cond / CFG / label-drop + 采样器（数值点 → 采样 → 表达式 → 新点 R²）。
 
 ## 推理 / 评估（Step 7-8）
 
