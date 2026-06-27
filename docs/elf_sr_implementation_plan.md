@@ -163,7 +163,9 @@ z_0 ~ N(0, I)
   - encoder 调用：`encode_text` 拆成 expression encoder（+归一化）和数值点 encoder 两路；
   - 数据来源：换成 `RandomFunctions` 的 `(表达式, 数值点)` batch（复用 `trainer.get_batch`）；
   - 词汇表：token id 来自 `equation_words`，unembed 已参数化。
-- **先无条件验证（cond=None）→ 里程碑 M2**：denoiser 能在 expression embedding 空间去噪，末步 unembed 产出合法 expression token（先证明 flow matching 本身跑通，降低风险）。
+- **先无条件验证（cond=None）→ 里程碑 M2** ✅（2026-06-27）：denoiser 在 expression embedding 空间去噪跑通，末步 unembed 产出合法 expression token。
+  - 产物：`flow_matching.py`（核心公式）+ `train_flow_matching.py`（M2 训练：DDP + DataLoader + 双分支 denoise(MSE)/decode(CE) + val_l2 监控 + resume）。
+  - smoke：val_l2 40 步 29.9 → 100 步 4.36（warmup 后明确下降）。坑：DDP 需 `find_unused_parameters=True`（M2 `self_cond_proj` unused）；config 实际 `noise_scale=1.0`/`decoder_prob=0.5`（计划曾写错 2.0/0.2）。详见项目记忆 `elf-sr-m2-status`。
 - **加 condition → 里程碑 M3**：数值点 → 表达式，R² 起步。
 
 ### Step 7 — 采样器 + 推理

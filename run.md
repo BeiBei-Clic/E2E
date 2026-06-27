@@ -74,9 +74,34 @@ CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 train_expression_encoder.py
 
 ---
 
-## 阶段 B：denoiser flow matching 训练（Step 6）
+## 阶段 B：denoiser flow matching 训练（Step 6 / M2 无条件版）
 
-> TODO（待 Step 4-5 完成、Step 6 脚本就位后补命令）。
+denoiser（ELF-B，移植自 ELF-pytorch）在 expression embedding 空间做 flow matching 去噪。**M2 无条件版**（不加 condition / self-cond / CFG），先验证 flow matching 本身；expression encoder freeze 提供目标 x0，归一化用 Step 4 的 mean/std。
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_flow_matching.py > logs/flow_m2.log 2>&1 &
+tail -f logs/flow_m2.log   # 每 log_every 步 train_ema, 每 eval_every 步 val_l2
+```
+
+停止 / 续训同阶段 A（`pkill -f train_flow_matching.py`；`--resume {out_dir}/last.pth`）。
+
+**关键参数**（其余 `lr/warmup/eval_every/log_every/patience/val_*/num_workers/resume/cpu/seed` 同阶段 A）
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--enc_ckpt` | `checkpoints/expression_encoder/best.pth` | freeze 的 expression encoder |
+| `--max_length` | 128 | 表达式 pad 长度（denoiser RoPE 固定长度约束） |
+| `--latent_mean` / `--latent_std` | -0.0004 / 0.9942 | Step 4 实测（归一化 x0） |
+| `--p_mean` / `--p_std` | 0.8 / 0.8 | logit-normal 时间调度 |
+| `--noise_scale` | 1.0 | flow matching 噪声尺度 |
+| `--decoder_prob` | 0.5 | 每 example 选 decode(CE) vs denoise(MSE) 分支的概率 |
+| `--t_eps` | 5e-2 | `v=(x-z)/(1-t)` 分母 clamp |
+| `--out_dir` | `checkpoints/flow_m2` | checkpoint 输出 |
+
+**产出**：`{out_dir}/{best,last}.pth`（denoiser 权重 + optimizer/scheduler/step/best，支持 `--resume`）。
+**M2 达标**：val_l2（denoise MSE）收敛下降 + decode 分支 unembed 产出多样合法 expression token。
+
+> smoke 已验证（val_l2：40 步 29.9 → 100 步 4.36，loss 明确下降）。M3 将叠 condition（数值点 cond_emb + `cond_seq_mask`，clean cond 不加噪）。
 
 ## 推理 / 评估（Step 7-8）
 
