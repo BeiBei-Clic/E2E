@@ -51,11 +51,18 @@ def gen_expr_batch(env, batch_size):
 
 
 class ExprPointDataset(IterableDataset):
-    """无限生成 (表达式, 数值点) batch; 每 worker 独立 rng。"""
+    """无限生成 (表达式, 数值点) batch; 每 worker 独立 rng。
 
-    def __init__(self, env, batch_size, base_seed):
+    worker 里顺带跑数值点 embedder 的 CPU 编码 (encode+batch, ~2.2s/批, float_encoder 逐数值
+    转 descriptor token) —— 这步是主进程 enc_c 瓶颈, 不能被 GPU 训练 overlap。挪进 worker 后
+    与 gen_expr 一起被多 worker overlap, 主进程只剩 GPU embed/compress + point_enc。
+    worker 只调 embedder.encode/batch (纯 CPU, 不碰 GPU 权重 embed/compress)。
+    """
+
+    def __init__(self, env, embedder, batch_size, base_seed):
         super().__init__()
         self.env = env
+        self.embedder = embedder
         self.batch_size = batch_size
         self.base_seed = base_seed
 
@@ -64,7 +71,9 @@ class ExprPointDataset(IterableDataset):
         wid = worker.id if worker else 0
         self.env.rng = np.random.RandomState(self.base_seed + wid)
         while True:
-            yield gen_expr_batch(self.env, self.batch_size)
+            x_tok, lengths, bags = gen_expr_batch(self.env, self.batch_size)
+            seq_tok, seq_cond_len = self.embedder.batch(self.embedder.encode(bags))  # CPU: (slen, bs, descriptor_len), (bs,)
+            yield x_tok, lengths, seq_tok, seq_cond_len
 
 
 def main():
@@ -86,6 +95,8 @@ def main():
     ap.add_argument("--out_dir", default="checkpoints/flow_m3")
     ap.add_argument("--cpu", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--profile_steps", type=int, default=0,
+                    help=">0: 跑 N 步打分段计时后退出 (诊断 GPU 负载瓶颈, 单卡)")
     # flow matching 超参 (ELF 实际默认, 同 M2)
     ap.add_argument("--latent_mean", type=float, default=-0.0004)
     ap.add_argument("--latent_std", type=float, default=0.9942)
@@ -193,14 +204,18 @@ def main():
         valid = (torch.arange(args.max_length, device=device).unsqueeze(1) < lengths.unsqueeze(0)).transpose(0, 1)
         return x0, input_ids, valid
 
-    # ---- encode: 数值点 bag -> cond_emb (bs, slen_max, dim) + cond_mask (bs, slen_max) ----
-    def encode_cond(bags):
+    # ---- encode: 数值点 (worker 已 encode+batch 成 CPU token) -> cond_emb + cond_mask ----
+    def encode_cond(seq_tok, seq_cond_len):
+        """seq_tok: (slen, bs, descriptor_len) LongTensor (worker encode+batch 产出);
+        主进程只跑 GPU embed+compress (LinearPointEmbedder) + point_enc。"""
+        seq_tok = seq_tok.to(device, non_blocking=True)
+        seq_cond_len = seq_cond_len.to(device, non_blocking=True)
         with torch.no_grad(), torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
-            seq_emb, lengths = embedder(bags)               # (slen_max, bs, 512), (bs,)
-            cond_emb = point_enc("fwd", x=seq_emb, lengths=lengths, causal=False)  # (slen_max, bs, 512)
-        cond_emb = cond_emb.transpose(0, 1).float()         # (bs, slen_max, 512)
+            seq_emb = embedder.compress(embedder.embed(seq_tok))               # (slen_max, bs, 512)
+            cond_emb = point_enc("fwd", x=seq_emb, lengths=seq_cond_len, causal=False)
+        cond_emb = cond_emb.transpose(0, 1).float()                            # (bs, slen_max, 512)
         slen_max = cond_emb.shape[1]
-        cond_mask = (torch.arange(slen_max, device=device).unsqueeze(0) < lengths.unsqueeze(1)).float()
+        cond_mask = (torch.arange(slen_max, device=device).unsqueeze(0) < seq_cond_len.unsqueeze(1)).float()
         return cond_emb, cond_mask
 
     # ---- 验证集 (固定 表达式+数值点, 所有 rank 相同) ----
@@ -211,8 +226,9 @@ def main():
         bs = min(args.val_batch, args.val_size - n_val)
         x_tok, lengths, bags = gen_expr_batch(env, bs)
         x_tok, lengths = x_tok.to(device), lengths.to(device)
+        seq_tok, seq_cond_len = embedder.batch(embedder.encode(bags))
         x0, input_ids, valid = encode_target(x_tok, lengths)
-        cond_emb, cond_mask = encode_cond(bags)
+        cond_emb, cond_mask = encode_cond(seq_tok, seq_cond_len)
         val_chunks.append((x0, input_ids, valid, cond_emb, cond_mask))
         n_val += bs
 
@@ -222,7 +238,7 @@ def main():
     if args.num_workers > 0:
         loader_kwargs["prefetch_factor"] = 4
         loader_kwargs["multiprocessing_context"] = "fork"
-    loader = DataLoader(ExprPointDataset(env, args.batch_size, args.seed + rank), **loader_kwargs)
+    loader = DataLoader(ExprPointDataset(env, embedder, args.batch_size, args.seed + rank), **loader_kwargs)
     data_iter = iter(loader)
 
     def evaluate():
@@ -268,12 +284,21 @@ def main():
     # ---- 训练循环 ----
     train_ema = None
     t0 = time.time()
+    prof = args.profile_steps > 0
     for step in range(start_step, args.max_steps):
-        x_tok, lengths, bags = next(data_iter)
+        if prof:
+            torch.cuda.synchronize(); _t = [time.perf_counter()]
+        x_tok, lengths, seq_tok, seq_cond_len = next(data_iter)
         x_tok, lengths = x_tok.to(device, non_blocking=True), lengths.to(device, non_blocking=True)
+        if prof:
+            torch.cuda.synchronize(); _t.append(time.perf_counter())  # data(gen_expr+encode, worker overlap)
         x0, input_ids, valid = encode_target(x_tok, lengths)
-        cond_emb, cond_mask = encode_cond(bags)
+        if prof:
+            torch.cuda.synchronize(); _t.append(time.perf_counter())  # enc_target
+        cond_emb, cond_mask = encode_cond(seq_tok, seq_cond_len)
         bs = x0.shape[0]
+        if prof:
+            torch.cuda.synchronize(); _t.append(time.perf_counter())  # enc_cond
 
         t = sample_timesteps(bs, args.p_mean, args.p_std, device)
         denoiser_z = add_noise(x0, torch.randn_like(x0), t, args.noise_scale)   # M3: cond 物理分离, 无 cond_seq_mask
@@ -282,9 +307,13 @@ def main():
         ds = torch.bernoulli(torch.full((bs,), args.decoder_prob, device=device)).view(-1, 1, 1)
         z_mixed = ds * decoder_z + (1 - ds) * denoiser_z
         t_mixed = ds.view(-1) * 1.0 + (1 - ds.view(-1)) * t
+        if prof:
+            torch.cuda.synchronize(); _t.append(time.perf_counter())  # 采样 + 加噪
 
         x_pred, logits = model(z_mixed, t_mixed, attention_mask=valid,
                                cond=cond_emb, cond_mask=cond_mask, decoder_step_active=ds.view(-1))
+        if prof:
+            torch.cuda.synchronize(); _t.append(time.perf_counter())  # denoiser fwd
         denom = torch.clamp(1.0 - t.reshape(-1, 1, 1), min=args.t_eps)
         l2 = (((x_pred - denoiser_z) / denom - (x0 - denoiser_z) / denom) ** 2).mean(-1)
         ce = F.cross_entropy(logits.transpose(1, 2), input_ids, reduction="none")
@@ -294,9 +323,20 @@ def main():
 
         optimizer.zero_grad()
         loss.backward()
+        if prof:
+            torch.cuda.synchronize(); _t.append(time.perf_counter())  # bwd
         torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
         optimizer.step()
         scheduler.step()
+        if prof:
+            torch.cuda.synchronize(); _t.append(time.perf_counter())  # opt
+            d = [(_t[i + 1] - _t[i]) * 1000 for i in range(len(_t) - 1)]
+            print(f"[prof] step {step+1:4d} | data {d[0]:6.1f} | enc_t {d[1]:6.1f} | enc_c {d[2]:6.1f} "
+                  f"| noise {d[3]:6.1f} | fwd {d[4]:6.1f} | bwd {d[5]:6.1f} | opt {d[6]:6.1f} | "
+                  f"sum {sum(d):6.1f}ms", flush=True)
+            if step + 1 >= args.profile_steps:
+                break
+            continue
         train_ema = loss.item() if train_ema is None else 0.95 * train_ema + 0.05 * loss.item()
 
         if (step + 1) % args.log_every == 0 and is_main:

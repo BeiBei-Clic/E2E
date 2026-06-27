@@ -118,7 +118,7 @@ M3 在 M2 基础上接入 condition：数值点 `(x,y)` → 数值点 encoder（
 
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_flow_m3.py \
-    --num_workers 8 > logs/flow_m3.log 2>&1 &
+    --num_workers 4 > logs/flow_m3.log 2>&1 &
 tail -f logs/flow_m3.log   # 每 log_every 步 train_ema, 每 eval_every 步 val_l2 + acc_correct + acc_shuffled + Δcond
 ```
 
@@ -133,16 +133,18 @@ tail -f logs/flow_m3.log   # 每 log_every 步 train_ema, 每 eval_every 步 val
 | `--max_length` | 128 | **target only**（cond 经 cross-attn 不占主序列，序列长度回到 M2 水平） |
 | `--out_dir` | `checkpoints/flow_m3` | checkpoint 输出 |
 | `--batch_size` | 128 | 每卡 batch（denoiser 116.2M；序列 128，显存同 M2 ≈7GB/卡） |
-| `--num_workers` | 4 | 每 rank 后台数据生成进程（`gen_expr` 带 `@timeout`，fork worker 下已验证正常） |
+| `--num_workers` | 4 | 每 rank 后台数据生成进程（worker 里跑 `gen_expr` + 数值点 `encode`+`batch`；实测 4 已完全 overlap，不必更大） |
 
-> M3 **不归一化 cond**（`cond_emb` 直接喂 cross-attn 的新 `kv_proj`，尺度差 std 0.29 vs target 1 由可学投影吸收）。flow matching 超参（`p_mean/p_std/noise_scale/t_eps/decoder_prob`）同 M2。encoder 前向套 **bf16 autocast**（freeze+no_grad），缓解 M2 已有的 GPU 空闲问题。
+> M3 **不归一化 cond**（`cond_emb` 直接喂 cross-attn 的新 `kv_proj`，尺度差 std 0.29 vs target 1 由可学投影吸收）。flow matching 超参（`p_mean/p_std/noise_scale/t_eps/decoder_prob`）同 M2。encoder 前向套 **bf16 autocast**（freeze+no_grad）。
+>
+> **GPU 负载（关键，踩过坑）**：`LinearPointEmbedder.forward` 把 CPU 编码（`encode`+`batch`，`float_encoder` 逐数值转 descriptor token，~2.2s/批）和 GPU 嵌入（`embed`+`compress`）混在一起。CPU 编码若留在主进程会卡死 GPU（worker 只能 overlap `gen_expr`，overlap 不了它）——这就是 `num_workers` 调多大都没用的根因。**解法**：worker 里跑完 `encode`+`batch`（纯 CPU，只读 `float_encoder`/`float_word2id`/`params`，不碰 GPU 权重，fork 安全），主进程 `encode_cond` 只剩 GPU `embed`+`compress`+`point_enc`（~0.5s）。实测 `num_workers=4` 单卡 2.2s/步、DDP 4 卡 2.7s/步（warmup），GPU 4×100%。诊断用 `--profile_steps N`（单卡跑 N 步打分段计时：data/enc_t/enc_c/noise/fwd/bwd/opt）。
 
 **M3 达标**（去风险点，区别于 M2 的关键）：
 - `val_l2`（denoise MSE）下降；
 - `acc_correct`（正确 cond 的 decode acc）超过 M2 水平 **0.632**；
 - **`Δcond = acc_correct − acc_shuffled` 显著为正**——正确 cond 比 batch 内打乱 cond 更准，直接证明生成依赖输入（否则 cross-attn 被无视、两者持平）。
 
-> smoke 已验证（单卡 `num_workers=0/2` 均通；val_l2 4 步 31.5→17.1 下降；可变点数 33~170 / 维度 1~10 正常）。DDP 仍需 `find_unused_parameters=True`（M3 未加 self-cond，`self_cond_proj` unused）。后续 Step 7 再加 self-cond / CFG / label-drop + 采样器（数值点 → 采样 → 表达式 → 新点 R²）。
+> smoke 已验证（单卡 `num_workers=0/2` 均通；val_l2 4 步 31.5→17.1 下降；可变点数 33~170 / 维度 1~10 正常）。负载优化后 4 卡 DDP 实测 2.7s/步（warmup）、GPU 4×100%、`enc_c` 2.7s→0.5s。DDP 仍需 `find_unused_parameters=True`（M3 未加 self-cond，`self_cond_proj` unused）。后续 Step 7 再加 self-cond / CFG / label-drop + 采样器（数值点 → 采样 → 表达式 → 新点 R²）。
 
 ## 推理 / 评估（Step 7-8）
 
