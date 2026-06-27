@@ -150,11 +150,13 @@ z_0 ~ N(0, I)
 - 训练到 MLM loss 收敛、masked token 重建合理。
 - freeze、保存权重。
 
-### Step 4 — 离线统计 mean/std
+### Step 4 — 离线统计 mean/std  ✅
 - 跑一批表达式过 freeze 的 encoder，统计全局 `mean/std`，填入阶段 B 的 config。
+- **完成（2026-06-27）**：`compute_latent_stats.py`，best.pth（step 57999）→ `latent_mean=-0.0004, latent_std=0.9942`（≈0/1，LayerNorm 决定；目标空间已 well-scaled，归一化近恒等，与 ELF 原版 T5 std≈0.2 不同）。
 
-### Step 5 — 加载 + freeze 数值点 encoder
+### Step 5 — 加载 + freeze 数值点 encoder  ✅
 - 从 `model.pt` 取 `embedder`+`encoder` 权重，载入新实例，`requires_grad_(False)`。
+- **完成**：验证通过（embedder+encoder 18.8M 全 freeze；数值点 → cond_emb `(bs,slen,512)`，std≈0.29；`mw.env.params` 精简坑见项目记忆）。
 
 ### Step 6 — 阶段 B：flow matching 训练 denoiser
 - 移植 `ELF-pytorch_elf/src/train_step.py`（PyTorch 版），改：
@@ -201,7 +203,7 @@ z_0 ~ N(0, I)
 - EMA：`ema_decay1=0.9999`
 
 ### 符号回归特化
-- `text_encoder_dim = 512`，`latent_mean/std`（离线统计）
+- `text_encoder_dim = 512`，`latent_mean=-0.0004 / latent_std=0.9942`（Step 4 实测，≈0/1）
 - `max_length`：表达式 prefix 最大长度（看现有生成配置，一般几十 token）
 - 数值点 condition 序列长度：数值点数 × 每点 float token 数
 - denoiser 规模：起步 `ELF-B`，视显存调整
