@@ -1,109 +1,32 @@
-W0627 13:56:55.907000 1416401 torch/distributed/run.py:852] 
-W0627 13:56:55.907000 1416401 torch/distributed/run.py:852] *****************************************
-W0627 13:56:55.907000 1416401 torch/distributed/run.py:852] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
-W0627 13:56:55.907000 1416401 torch/distributed/run.py:852] *****************************************
-device=cuda:0 | world_size=4 | num_workers=4 | vocab 10292 | denoiser 92.6M | max_length 128 | steps 0->200000
-step    100 | train_ema 12.6796 | lr 1.00e-05 | 3.6min
-step    200 | train_ema 6.8434 | lr 2.00e-05 | 7.2min
-step    300 | train_ema 3.4121 | lr 3.00e-05 | 10.9min
-step    400 | train_ema 1.7149 | lr 4.00e-05 | 14.6min
-step    500 | train_ema 1.1571 | lr 5.00e-05 | 18.2min
-step    600 | train_ema 0.9104 | lr 6.00e-05 | 21.8min
-step    700 | train_ema 0.8590 | lr 7.00e-05 | 25.4min
-step    800 | train_ema 0.7911 | lr 8.00e-05 | 29.0min
-step    900 | train_ema 0.8155 | lr 9.00e-05 | 32.6min
-step   1000 | train_ema 0.7846 | lr 1.00e-04 | 36.2min
-step   1100 | train_ema 0.7687 | lr 1.00e-04 | 39.9min
-step   1200 | train_ema 0.7736 | lr 1.00e-04 | 43.5min
-step   1300 | train_ema 0.7809 | lr 1.00e-04 | 47.1min
-step   1400 | train_ema 0.7783 | lr 1.00e-04 | 50.6min
-step   1500 | train_ema 0.7680 | lr 1.00e-04 | 54.2min
-step   1600 | train_ema 0.7733 | lr 1.00e-04 | 57.8min
-step   1700 | train_ema 0.7606 | lr 1.00e-04 | 61.4min
-step   1800 | train_ema 0.7878 | lr 1.00e-04 | 65.0min
-step   1900 | train_ema 0.7618 | lr 1.00e-04 | 68.6min
-step   2000 | train_ema 0.7365 | lr 1.00e-04 | 72.1min
-/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/c10d_logger.py:83: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
-  return func(*args, **kwargs)
-step   2000 | train_ema 0.7365 | val_l2 0.0183 | decode_acc 0.612 | best 0.0183@2000 | bad 0/20 | lr 1.00e-04 | 72.2min
-step   2100 | train_ema 0.7675 | lr 1.00e-04 | 75.8min
-step   2200 | train_ema 0.7538 | lr 1.00e-04 | 79.5min
-step   2300 | train_ema 0.7493 | lr 1.00e-04 | 83.1min
-step   2400 | train_ema 0.7382 | lr 1.00e-04 | 86.6min
-step   2500 | train_ema 0.7578 | lr 1.00e-04 | 90.2min
-step   2600 | train_ema 0.7612 | lr 1.00e-04 | 93.8min
-step   2700 | train_ema 0.7584 | lr 1.00e-04 | 97.4min
-step   2800 | train_ema 0.7744 | lr 1.00e-04 | 100.9min
-step   2900 | train_ema 0.7579 | lr 1.00e-04 | 104.5min
-step   3000 | train_ema 0.7493 | lr 1.00e-04 | 108.0min
-step   3100 | train_ema 0.7534 | lr 1.00e-04 | 111.5min
-step   3200 | train_ema 0.7348 | lr 1.00e-04 | 115.1min
-step   3300 | train_ema 0.7665 | lr 1.00e-04 | 118.6min
-step   3400 | train_ema 0.7552 | lr 1.00e-04 | 122.2min
-step   3500 | train_ema 0.7420 | lr 1.00e-04 | 125.8min
-step   3600 | train_ema 0.7570 | lr 1.00e-04 | 129.3min
-step   3700 | train_ema 0.7381 | lr 1.00e-04 | 132.9min
-step   3800 | train_ema 0.7506 | lr 1.00e-04 | 136.5min
-step   3900 | train_ema 0.7514 | lr 9.99e-05 | 140.0min
-step   4000 | train_ema 0.7553 | lr 9.99e-05 | 143.6min
-step   4000 | train_ema 0.7553 | val_l2 0.0132 | decode_acc 0.617 | best 0.0132@4000 | bad 0/20 | lr 9.99e-05 | 143.9min
-step   4100 | train_ema 0.7627 | lr 9.99e-05 | 147.5min
-step   4200 | train_ema 0.7415 | lr 9.99e-05 | 151.1min
-step   4300 | train_ema 0.7570 | lr 9.99e-05 | 154.7min
-step   4400 | train_ema 0.7576 | lr 9.99e-05 | 158.3min
-step   4500 | train_ema 0.7489 | lr 9.99e-05 | 161.9min
-step   4600 | train_ema 0.7566 | lr 9.99e-05 | 165.4min
-step   4700 | train_ema 0.7417 | lr 9.99e-05 | 169.0min
-step   4800 | train_ema 0.7437 | lr 9.99e-05 | 172.5min
-step   4900 | train_ema 0.7322 | lr 9.99e-05 | 176.1min
-step   5000 | train_ema 0.7580 | lr 9.99e-05 | 179.6min
-step   5100 | train_ema 0.7226 | lr 9.99e-05 | 183.1min
-step   5200 | train_ema 0.7593 | lr 9.99e-05 | 186.7min
-step   5300 | train_ema 0.7452 | lr 9.99e-05 | 190.2min
-step   5400 | train_ema 0.7629 | lr 9.99e-05 | 193.8min
-step   5500 | train_ema 0.7522 | lr 9.99e-05 | 197.3min
-step   5600 | train_ema 0.7388 | lr 9.99e-05 | 200.9min
-step   5700 | train_ema 0.7494 | lr 9.99e-05 | 204.5min
-step   5800 | train_ema 0.7357 | lr 9.99e-05 | 208.0min
-step   5900 | train_ema 0.7135 | lr 9.99e-05 | 211.7min
-step   6000 | train_ema 0.7438 | lr 9.98e-05 | 215.4min
-step   6000 | train_ema 0.7438 | val_l2 0.0095 | decode_acc 0.621 | best 0.0095@6000 | bad 0/20 | lr 9.98e-05 | 215.8min
-step   6100 | train_ema 0.7473 | lr 9.98e-05 | 219.7min
-step   6200 | train_ema 0.7158 | lr 9.98e-05 | 223.5min
-step   6300 | train_ema 0.7489 | lr 9.98e-05 | 227.4min
-step   6400 | train_ema 0.7578 | lr 9.98e-05 | 231.1min
-step   6500 | train_ema 0.7475 | lr 9.98e-05 | 234.7min
-step   6600 | train_ema 0.7337 | lr 9.98e-05 | 238.3min
-step   6700 | train_ema 0.7387 | lr 9.98e-05 | 242.1min
-step   6800 | train_ema 0.7343 | lr 9.98e-05 | 245.8min
-step   6900 | train_ema 0.7512 | lr 9.98e-05 | 249.5min
-step   7000 | train_ema 0.7457 | lr 9.98e-05 | 253.3min
-step   7100 | train_ema 0.7317 | lr 9.98e-05 | 257.0min
-step   7200 | train_ema 0.7382 | lr 9.98e-05 | 260.8min
-step   7300 | train_ema 0.7377 | lr 9.98e-05 | 264.5min
-step   7400 | train_ema 0.7412 | lr 9.97e-05 | 268.2min
-step   7500 | train_ema 0.7444 | lr 9.97e-05 | 271.9min
-step   7600 | train_ema 0.7416 | lr 9.97e-05 | 275.5min
-step   7700 | train_ema 0.7278 | lr 9.97e-05 | 279.1min
-step   7800 | train_ema 0.7460 | lr 9.97e-05 | 282.7min
-step   7900 | train_ema 0.7451 | lr 9.97e-05 | 286.3min
-step   8000 | train_ema 0.7394 | lr 9.97e-05 | 290.3min
-step   8000 | train_ema 0.7394 | val_l2 0.0094 | decode_acc 0.619 | best 0.0094@8000 | bad 0/20 | lr 9.97e-05 | 290.9min
-step   8100 | train_ema 0.7438 | lr 9.97e-05 | 294.8min
-step   8200 | train_ema 0.7295 | lr 9.97e-05 | 298.7min
-step   8300 | train_ema 0.7115 | lr 9.97e-05 | 302.6min
-step   8400 | train_ema 0.7511 | lr 9.97e-05 | 306.6min
-step   8500 | train_ema 0.7470 | lr 9.96e-05 | 310.6min
-step   8600 | train_ema 0.7469 | lr 9.96e-05 | 314.6min
-step   8700 | train_ema 0.7398 | lr 9.96e-05 | 318.5min
-step   8800 | train_ema 0.7589 | lr 9.96e-05 | 322.5min
-step   8900 | train_ema 0.7278 | lr 9.96e-05 | 326.5min
-step   9000 | train_ema 0.7568 | lr 9.96e-05 | 330.3min
-step   9100 | train_ema 0.7528 | lr 9.96e-05 | 333.9min
-step   9200 | train_ema 0.7460 | lr 9.96e-05 | 337.5min
-step   9300 | train_ema 0.7509 | lr 9.96e-05 | 341.2min
-step   9400 | train_ema 0.7468 | lr 9.96e-05 | 345.0min
-step   9500 | train_ema 0.7416 | lr 9.96e-05 | 348.7min
-step   9600 | train_ema 0.7206 | lr 9.95e-05 | 352.5min
-step   9700 | train_ema 0.7692 | lr 9.95e-05 | 356.2min
-step   9800 | train_ema 0.7286 | lr 9.95e-05 | 359.9min
+W0627 20:27:41.612000 557170 torch/distributed/run.py:852] 
+W0627 20:27:41.612000 557170 torch/distributed/run.py:852] *****************************************
+W0627 20:27:41.612000 557170 torch/distributed/run.py:852] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0627 20:27:41.612000 557170 torch/distributed/run.py:852] *****************************************
+device=cuda:0 | world_size=4 | num_workers=6 | vocab 10292 | denoiser 92.6M | max_length 128 | steps 0->200000
+W0627 20:28:21.792000 557170 torch/distributed/elastic/agent/server/api.py:739] Received Signals.SIGTERM death signal, shutting down workers
+W0627 20:28:21.793000 557170 torch/distributed/elastic/multiprocessing/api.py:1010] Sending process 557451 closing signal SIGTERM
+W0627 20:28:21.794000 557170 torch/distributed/elastic/multiprocessing/api.py:1010] Sending process 557452 closing signal SIGTERM
+W0627 20:28:21.795000 557170 torch/distributed/elastic/multiprocessing/api.py:1010] Sending process 557453 closing signal SIGTERM
+W0627 20:28:21.795000 557170 torch/distributed/elastic/multiprocessing/api.py:1010] Sending process 557454 closing signal SIGTERM
+Traceback (most recent call last):
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/bin/torchrun", line 10, in <module>
+    sys.exit(main())
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 362, in wrapper
+    return f(*args, **kwargs)
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/run.py", line 991, in main
+    run(args)
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/run.py", line 982, in run
+    elastic_launch(
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 170, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/launcher/api.py", line 308, in launch_agent
+    result = agent.run()
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/elastic/metrics/api.py", line 134, in wrapper
+    result = f(*args, **kwargs)
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/elastic/agent/server/api.py", line 731, in run
+    result = self._invoke_run(role)
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/elastic/agent/server/api.py", line 908, in _invoke_run
+    time.sleep(monitor_interval)
+  File "/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/elastic/multiprocessing/api.py", line 86, in _terminate_process_handler
+    raise SignalException(f"Process {os.getpid()} got signal: {sigval}", sigval=sigval)
+torch.distributed.elastic.multiprocessing.api.SignalException: Process 557170 got signal: 15

@@ -163,7 +163,7 @@ def main():
     loader_kwargs = dict(batch_size=None, num_workers=args.num_workers,
                          pin_memory=(device.type == "cuda"))
     if args.num_workers > 0:
-        loader_kwargs["prefetch_factor"] = 2
+        loader_kwargs["prefetch_factor"] = 4
         loader_kwargs["multiprocessing_context"] = "fork"
     loader = DataLoader(TreeDataset(env, args.batch_size, args.seed + rank), **loader_kwargs)
     data_iter = iter(loader)

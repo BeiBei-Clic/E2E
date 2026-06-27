@@ -79,8 +79,9 @@ CUDA_VISIBLE_DEVICES=0,1 torchrun --nproc_per_node=2 train_expression_encoder.py
 denoiser（ELF-B，移植自 ELF-pytorch）在 expression embedding 空间做 flow matching 去噪。**M2 无条件版**（不加 condition / self-cond / CFG），先验证 flow matching 本身；expression encoder freeze 提供目标 x0，归一化用 Step 4 的 mean/std。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_flow_matching.py > logs/flow_m2.log 2>&1 &
-tail -f logs/flow_m2.log   # 每 log_every 步 train_ema, 每 eval_every 步 val_l2
+CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_flow_matching.py \
+    --num_workers 8 > logs/flow_m2.log 2>&1 &
+tail -f logs/flow_m2.log   # 每 log_every 步 train_ema, 每 eval_every 步 val_l2 + decode_acc
 ```
 
 停止 / 续训同阶段 A（`pkill -f train_flow_matching.py`；`--resume {out_dir}/last.pth`）。
@@ -97,6 +98,12 @@ tail -f logs/flow_m2.log   # 每 log_every 步 train_ema, 每 eval_every 步 val
 | `--decoder_prob` | 0.5 | 每 example 选 decode(CE) vs denoise(MSE) 分支的概率 |
 | `--t_eps` | 5e-2 | `v=(x-z)/(1-t)` 分母 clamp |
 | `--out_dir` | `checkpoints/flow_m2` | checkpoint 输出 |
+| `--batch_size` | 128 | **每卡** batch（256 会 OOM；denoiser 92.6M + decode logits `(B,128,10292)` 大） |
+| `--gradient_checkpointing` | 开 | denoiser 开 grad ckpt 省 activations（脚本固化，训练慢 ~30%）。OOM 时可再降 `--batch_size` 到 64 |
+
+**显存 / GPU 负载调优**：
+- OOM → 降 `--batch_size`（128→64）。当前 128 + grad_ckpt ≈ 7GB/卡。
+- **GPU 负载不稳（掉）** → 多是 DataLoader 跟不上：M2 每步主进程要串行跑一遍 expr_enc 前向（57.8M），等 token 时空闲。缓解：`--num_workers 8`（脚本 `prefetch_factor=4`）。若仍掉，瓶颈是 expr_enc 前向（无法挪进 worker——CUDA 不能 fork），根本解是给 expr_enc 前向套 bf16 autocast（待加）。
 
 **产出**：`{out_dir}/{best,last}.pth`（denoiser 权重 + optimizer/scheduler/step/best，支持 `--resume`）。
 **M2 达标**：val_l2（denoise MSE）收敛下降 + decode 分支 unembed 产出多样合法 expression token。
