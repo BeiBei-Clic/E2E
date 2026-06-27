@@ -157,7 +157,11 @@ def main():
         text_encoder_dim=ep.enc_emb_dim, max_length=args.max_length,
         vocab_size=n_words, num_self_cond_cfg_tokens=0,
         gradient_checkpointing=True).to(device).train()
-    model = DDP(denoiser, device_ids=[local_rank], find_unused_parameters=True) if ddp else denoiser
+    # M3 不用 self-conditioning (denoiser_z 永远单 dim, forward 里 self_cond_proj 分支不触发),
+    # 删之让所有参数 used -> 关 find_unused_parameters (省每步 graph 遍历 + 恢复 all-reduce overlap)
+    del denoiser.self_cond_proj
+    model = DDP(denoiser, device_ids=[local_rank], find_unused_parameters=False,
+                gradient_as_bucket_view=True, static_graph=True) if ddp else denoiser
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 

@@ -144,7 +144,7 @@ tail -f logs/flow_m3.log   # 每 log_every 步 train_ema, 每 eval_every 步 val
 - `acc_correct`（正确 cond 的 decode acc）超过 M2 水平 **0.632**；
 - **`Δcond = acc_correct − acc_shuffled` 显著为正**——正确 cond 比 batch 内打乱 cond 更准，直接证明生成依赖输入（否则 cross-attn 被无视、两者持平）。
 
-> smoke 已验证（单卡 `num_workers=0/2` 均通；val_l2 4 步 31.5→17.1 下降；可变点数 33~170 / 维度 1~10 正常）。负载优化后 4 卡 DDP 实测 2.7s/步（warmup）、GPU 4×100%、`enc_c` 2.7s→0.5s。DDP 仍需 `find_unused_parameters=True`（M3 未加 self-cond，`self_cond_proj` unused）。后续 Step 7 再加 self-cond / CFG / label-drop + 采样器（数值点 → 采样 → 表达式 → 新点 R²）。
+> smoke 已验证（单卡 `num_workers=0/2` 均通；val_l2 4 步 31.5→17.1 下降；可变点数 33~170 / 维度 1~10 正常）。负载优化后 4 卡 DDP 实测 2.7s/步（warmup）、GPU 4×100%、`enc_c` 2.7s→0.5s。DDP 删掉 `self_cond_proj`（M3 不用 self-cond）让所有参数 used，配 `find_unused_parameters=False` + `static_graph` + `gradient_as_bucket_view`（DDP 最佳实践）；util 周期性 100%↔30% 是 all-reduce 同步 + 各 rank forward 差异的固有低段（梯度通信仅 14ms，非瓶颈，无法消除），step 间隔 2.6s 波动<2% 即训练稳定。后续 Step 7 再加 self-cond / CFG / label-drop + 采样器（数值点 → 采样 → 表达式 → 新点 R²）。
 
 ## 推理 / 评估（Step 7-8）
 
