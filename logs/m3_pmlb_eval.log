@@ -1,0 +1,12 @@
+loaded checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth: step 9000 val_l2 0.007326595965110567
+1027_ESL: ok r2=0.8724237531977661 (105.49s)
+1028_SWD: ok r2=0.31923796413752026 (93.77s)
+1029_LEV: ok r2=0.5719043251596698 (104.29s)
+1030_ERA: ok r2=0.45654359289788726 (107.58s)
+1089_USCrime: skipped (n_features=13 > 10)
+1096_FacultySalaries: ok r2=0.7594380872840685 (163.24s)
+1191_BNG_pbc: skipped (n_features=18 > 10)
+1193_BNG_lowbwt: ok r2=0.5827392817528103 (199.93s)
+1196_BNG_pharynx: ok r2=0.48762352768649875 (117.10s)
+1199_BNG_echoMonths: ok r2=0.5376392181197172 (134.82s)
+1201_BNG_breastTumor: ok r2=0.11421932086636788 (118.54s)

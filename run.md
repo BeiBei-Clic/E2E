@@ -175,4 +175,37 @@ tail -f logs/uniform_cosine_lr2e-3_resume.log
 
 ## 推理 / 评估（Step 7-8）
 
-> TODO（待采样器与评估脚本就位后补命令）。
+### pmlb 批量评估（M3 vs 端到端基线）
+
+`experiments/pmlb/pmlb_batch_inference_m3.py`：把 `pmlb_batch_inference.py` 的符号回归模型从端到端 `SymbolicTransformerRegressor` 换成 M3 流匹配（数值点 → cond_emb → ODE 批量采样 n_samples 个候选 → decode → BFGS 常数优化 → rescale → R²）。维度 >10 跳过，其余（StandardScaler 标准化 X / BFGS-in-scaled-space / rescale_function / metrics / CSV 表头）与端到端评估完全一致。端到端基线（model.pt, noise=0.1, 222 集）：r² 中位 0.783、>0.5 占 157/221。
+
+```bash
+# M3 pmlb 评估 (改 --device / --noise_strength / --ckpt 即可)
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference_m3.py \
+    --device cuda:3 --noise_strength 0.1 \
+    --ckpt checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth \
+    > logs/m3_pmlb_eval.log 2>&1 &
+tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... (Ns)"
+```
+
+停止：`pkill -f pmlb_batch_inference_m3`。
+续跑：直接重跑同命令（`load_existing_results` 按 `(dataset, noise_strength)` 跳过已完成，CSV 追加写）。**换权重 / 换噪声强度** → 结果落不同 CSV（默认按 `noise_strength` 自动分文件 `pmlb_m3_noise_{ns}.csv`；换权重想保留旧结果就显式 `--output_csv` 指新文件）从头跑。
+
+**关键参数**
+
+| 参数 | 默认 | 说明 |
+|---|---|---|
+| `--device` | `cuda` | **用哪张卡**：`cuda:0`/`cuda:3`（M3 推理 ~1.6G，可与训练同卡共存） |
+| `--noise_strength` | `0.0` | **目标噪声**：给 y 加相对噪声 `y*(1+ns·N(0,1))`；对齐端到端基线用 `0.1` |
+| `--ckpt` | `checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth` | **加载哪个 M3 权重**（denoiser） |
+| `--point_ckpt` | `model.pt` | freeze 的数值点 encoder（embedder+encoder） |
+| `--n_samples` | 32 | 采样候选数（M3 无 beam，用 n_samples 个不同噪声 batch 并行采样，按 r² 选优；功能等价 beam=32） |
+| `--n_ode_steps` | 100 | ODE Euler 步数（t:0→1，diffusion 采样步数；多更准但慢） |
+| `--max_length` | 128 | target 序列长度（同训练） |
+| `--max_rows` / `--max_input_points` | 200 / 200 | pmlb 行数上限 / 喂 cond 的数值点上限 |
+| `--rescale` | True | StandardScaler 标准化 X（训练数值点已标准化到 O(1)，必要；`--no-rescale` 关） |
+| `--noise_seed` / `--seed` | 0 / 0 | 噪声种子 / 采样种子 |
+| `--dataset_limit` | None | 只跑前 N 个数据集（smoke 用，如 `--dataset_limit 2`） |
+| `--output_csv` | `experiments/pmlb/results/pmlb_m3_noise_{ns}.csv` | 结果 CSV（默认按 noise_strength 自动分文件） |
+
+> 流程对齐细节：`apply_target_noise` 加噪→`y_to_fit`（BFGS 拟合目标）；`StandardScaler` 只标准化 X、不动 y；BFGS(Nelder-Mead) 在 scaled_X 空间拟合常数、reference=`y_to_fit`；`rescale_function` 把树里 `x_k` 包 `add(b_k,mul(a_k,x_k))`（常数不变）；报告口径=rescale 后树在原 X 求值 vs 干净 y。`refinement_type` 取 NoRef/BFGS 中 r² 较优者。try-except 仅包 BFGS（Nelder-Mead 失败 / 非有限 → 回退 raw）。smoke：M3 r² 超端到端基线（1027_ESL 0.87 vs 0.61，1028_SWD 0.35 vs -0.05）。
