@@ -1,13 +1,15 @@
-"""M3 扩散模型 pmlb 批量评估。对齐 pmlb_batch_inference.py, 把符号回归模型从端到端
-SymbolicTransformerRegressor 换成 M3 流匹配 (数值点 -> cond_emb -> ODE 批量采样 n_samples 个候选
--> decode -> BFGS 常数优化 -> rescale -> R²)。维度 >10 跳过, 其余与端到端评估完全一致。
+"""M3 扩散模型 pmlb 自适应批量评估。对齐 pmlb_adaptive_beam_inference.py 的做法:
+- 自适应采样规模: M3 无 beam, 等价物是并行采样数 n_samples; R² < r2_threshold 则 n_samples 翻倍重试,
+  跨 attempt 取最优, 达阈值提前退出 (初始 --n_samples, 最多 --max_retries 次翻倍)。
+- 多 worker 并行 BFGS: skeleton 去重后的唯一候选分发给 ProcessPoolExecutor(fork) 并行常数优化。
+流程: 数值点 -> cond_emb -> ODE 批量采样 -> decode -> (并行) BFGS -> rescale -> R²。维度 >10 跳过。
 
 对齐要点 (逐条核对 run_inference / refine / compute_metrics):
 - apply_target_noise 给 y 加噪 -> y_to_fit; BFGS 拟合目标 = y_to_fit, R² reference = 干净 y (对齐)
 - StandardScaler 只标准化 X (训练数值点经 generate_datapoints 内部已标准化到 O(1), rescale 把 pmlb X 拉回训练分布)
 - BFGS 在 scaled_X 空间拟合常数 -> rescale_function 只作用变量 (包 add(b, mul(a, x))) 不改常数 -> 原空间求值
 - refinement_type: NoRef(raw) 与 BFGS 取 r² 较优者 (对齐原 "NoRef 与 BFGS 候选共同排序取最优")
-- _complexity = rescale 后树节点数; CSV 表头与端到端完全一致
+- _complexity = rescale 后树节点数; CSV 在端到端字段上加 beam_size/attempt 两列
 
 try-except 仅在 BFGS (Nelder-Mead) 内: 常数优化失败/非有限 -> 回退 raw。其余错误直接报 (靠 resume 续跑)。
 """
@@ -37,8 +39,16 @@ from experiments.pmlb.pmlb_inference import (
 from experiments.pmlb.pmlb_batch_inference import (
     is_regression_dataset,
     list_regression_datasets,
-    RESULT_FIELDS,
     load_existing_results,
+)
+from concurrent.futures import ProcessPoolExecutor
+from multiprocessing import get_context
+
+# 自适应评估结果字段: 端到端字段 + beam_size/attempt 记录命中的采样规模与重试轮次
+RESULT_FIELDS = (
+    "dataset", "status", "n_features", "beam_size", "attempt",
+    "refinement_type", "r2", "rmse", "complexity", "seconds",
+    "error", "noise_strength", "expr",
 )
 
 warnings.filterwarnings("ignore", category=RuntimeWarning)  # Nelder-Mead 反复 tree.val 的 overflow 不阻塞
@@ -164,6 +174,13 @@ def tree_fit_r2(tree, x_fit, y_fit):
     return r_raw, tree, "NoRef"
 
 
+def _bfgs_worker(task):
+    """ProcessPool worker: (tree, x, y) -> (r2, tree, rtype)。
+    tree_fit_r2 纯 numpy/scipy + tree.val, 无 env/GPU 依赖 (fork COW 共享主进程已加载模块)。"""
+    tree, x, y = task
+    return tree_fit_r2(tree, x, y)
+
+
 def run_inference_m3(dataset_name, denoiser, embedder, point_enc, env, eos_id,
                      args, device, use_amp, d_model):
     _, _, X, y = load_pmlb_dataset(dataset_name, args.datasets_dir, args.max_rows)
@@ -181,29 +198,55 @@ def run_inference_m3(dataset_name, denoiser, embedder, point_enc, env, eos_id,
     y_col = np.asarray(y_to_fit[:n_pts]).reshape(-1, 1)
     bags = [list(zip(np.asarray(scaled_X[:n_pts]), y_col))]
 
+    # cond 只依赖数据点, 与采样数无关 -> 循环外算一次复用 (自适应只重跑采样 + BFGS)
     cond_emb, cond_mask = encode_cond(bags, embedder, point_enc, device, use_amp)
-    ids = ode_sample_decode(denoiser, cond_emb, cond_mask, args.n_samples, args.n_ode_steps,
-                            args.max_length, d_model, device, use_amp)
 
-    # 每候选 BFGS 选 r² 最优; skeleton 去重 (对齐原 refine: 同结构不同常数只优化一次, 省重复 BFGS);
-    # r² 在 scaled 空间 vs y_to_fit (选优口径, 对齐 refine 排序)
-    candidates = []
-    seen = {}
-    for i in range(ids.shape[0]):
-        tree = ids_to_tree(env, ids[i], eos_id)
-        if tree is None:
-            continue
-        sk = tree_to_skeleton(copy.deepcopy(tree))[0].prefix()
-        if sk in seen:
-            continue
-        seen[sk] = True
-        r2_sel, sel_tree, rtype = tree_fit_r2(tree, scaled_X, y_to_fit)
-        candidates.append((r2_sel, sel_tree, rtype))
-    if not candidates:
-        return {"status": "ok", "n_features": int(X.shape[1]), "refinement_type": "",
-                "r2": "", "rmse": "", "complexity": "", "expr": ""}
+    # 自适应采样规模 (对齐 pmlb_adaptive_beam_inference: R² 未达阈值则 n_samples 翻倍重试,
+    # 跨 attempt 取最优, 达阈值提前退出)。M3 无 beam, 等价物是并行采样数 n_samples。
+    best = None       # (r2_sel, tree, rtype, beam_size, attempt)
+    best_r2 = -float("inf")
+    current_samples = args.n_samples
+    for attempt in range(args.max_retries + 1):
+        ids = ode_sample_decode(denoiser, cond_emb, cond_mask, current_samples,
+                                args.n_ode_steps, args.max_length, d_model, device, use_amp)
 
-    _, best_tree, best_type = max(candidates, key=lambda c: c[0] if np.isfinite(c[0]) else -np.inf)
+        # decode + skeleton 去重 -> 唯一结构候选 (同结构不同常数只 BFGS 一次, 对齐原 refine)
+        unique_trees, seen = [], {}
+        for i in range(ids.shape[0]):
+            tree = ids_to_tree(env, ids[i], eos_id)
+            if tree is None:
+                continue
+            sk = tree_to_skeleton(copy.deepcopy(tree))[0].prefix()
+            if sk in seen:
+                continue
+            seen[sk] = True
+            unique_trees.append(tree)
+
+        # 多 worker 并行 BFGS (fork COW; task 带 tree+x+y, tree_fit_r2 纯 numpy 无 env/GPU 依赖)
+        attempt_best = None
+        if unique_trees:
+            tasks = [(t, scaled_X, y_to_fit) for t in unique_trees]
+            worker_count = min(len(tasks), args.bfgs_workers)
+            with ProcessPoolExecutor(max_workers=worker_count, mp_context=get_context("fork")) as ex:
+                fitted = list(ex.map(_bfgs_worker, tasks))
+            attempt_best = max(fitted, key=lambda c: c[0] if np.isfinite(c[0]) else -np.inf)
+
+        if attempt_best is not None:
+            r2_a, tree_a, rtype_a = attempt_best
+            if r2_a > best_r2:
+                best_r2 = r2_a
+                best = (r2_a, tree_a, rtype_a, current_samples, attempt + 1)
+            # 达 R² 阈值提前退出 (选优口径 = scaled 空间 vs y_to_fit, 对齐 refine 排序)
+            if r2_a >= args.r2_threshold:
+                break
+        current_samples *= 2
+
+    if best is None:
+        return {"status": "ok", "n_features": int(X.shape[1]), "beam_size": "",
+                "attempt": "", "refinement_type": "", "r2": "", "rmse": "",
+                "complexity": "", "expr": ""}
+
+    r2_sel, best_tree, best_type, beam_size, attempt_no = best
     rescaled = scaler.rescale_function(env, best_tree, a, b) if args.rescale else best_tree
 
     # 报告口径: rescale 后树在原 X 求值 vs 干净 y (对齐 predict + compute_metrics)
@@ -213,6 +256,8 @@ def run_inference_m3(dataset_name, denoiser, embedder, point_enc, env, eos_id,
     return {
         "status": "ok",
         "n_features": int(X.shape[1]),
+        "beam_size": beam_size,
+        "attempt": attempt_no,
         "refinement_type": best_type,
         "r2": metrics["r2"][0],
         "rmse": metrics["_rmse"][0],
@@ -222,7 +267,7 @@ def run_inference_m3(dataset_name, denoiser, embedder, point_enc, env, eos_id,
 
 
 def default_output_csv_m3(noise_strength):
-    return f"experiments/pmlb/results/pmlb_m3_noise_{noise_strength:g}.csv"
+    return f"experiments/pmlb/results/pmlb_m3_adaptive_noise_{noise_strength:g}.csv"
 
 
 def build_parser():
@@ -234,7 +279,14 @@ def build_parser():
     parser.add_argument("--output_csv", default=None)
     parser.add_argument("--max_rows", type=int, default=200)
     parser.add_argument("--max_input_points", type=int, default=200)
-    parser.add_argument("--n_samples", type=int, default=32)
+    parser.add_argument("--n_samples", type=int, default=32,
+                        help="初始采样规模; R² 未达阈值时翻倍重试 (自适应 beam 等价物)")
+    parser.add_argument("--r2_threshold", type=float, default=0.9,
+                        help="R² 达此阈值提前退出 (选优口径 = scaled 空间)")
+    parser.add_argument("--max_retries", type=int, default=3,
+                        help="R² 未达阈值的最大翻倍重试次数 (总 attempt = max_retries+1)")
+    parser.add_argument("--bfgs_workers", type=int, default=os.cpu_count(),
+                        help="并行 BFGS worker 数 (fork)")
     parser.add_argument("--n_ode_steps", type=int, default=100)
     parser.add_argument("--max_length", type=int, default=128)
     parser.add_argument("--rescale", action=argparse.BooleanOptionalAction, default=True)
@@ -309,7 +361,8 @@ def main():
             row["seconds"] = f"{time.time() - start:.2f}"
             writer.writerow(row)
             handle.flush()
-            print(f"{dataset_name}: {row['status']} r2={row['r2']} ({row['seconds']}s)", flush=True)
+            print(f"{dataset_name}: {row['status']} r2={row['r2']} "
+                  f"beam={row['beam_size']} attempt={row['attempt']} ({row['seconds']}s)", flush=True)
 
 
 if __name__ == "__main__":

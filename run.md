@@ -177,19 +177,19 @@ tail -f logs/uniform_cosine_lr2e-3_resume.log
 
 ### pmlb 批量评估（M3 vs 端到端基线）
 
-`experiments/pmlb/pmlb_batch_inference_m3.py`：把 `pmlb_batch_inference.py` 的符号回归模型从端到端 `SymbolicTransformerRegressor` 换成 M3 流匹配（数值点 → cond_emb → ODE 批量采样 n_samples 个候选 → decode → BFGS 常数优化 → rescale → R²）。维度 >10 跳过，其余（StandardScaler 标准化 X / BFGS-in-scaled-space / rescale_function / metrics / CSV 表头）与端到端评估完全一致。端到端基线（model.pt, noise=0.1, 222 集）：r² 中位 0.783、>0.5 占 157/221。
+`experiments/pmlb/pmlb_batch_inference_m3.py`：把 `pmlb_batch_inference.py` 的符号回归模型从端到端 `SymbolicTransformerRegressor` 换成 M3 流匹配（数值点 → cond_emb → ODE 批量采样 → decode → BFGS 常数优化 → rescale → R²）。**对齐 `pmlb_adaptive_beam_inference.py` 两点做法**：① **自适应采样规模**——M3 无 beam，等价物是并行采样数 `n_samples`，R² < `r2_threshold` 则 `n_samples` 翻倍重试（跨 attempt 取最优、达阈值提前退出）；② **多 worker 并行 BFGS**——skeleton 去重后的唯一候选用 `ProcessPoolExecutor(fork)` 并行常数优化（M3 的 `tree_fit_r2` 纯 numpy、不依赖 env/GPU，task 直接传 `(tree,x,y)`）。维度 >10 跳过，其余（StandardScaler 标准化 X / BFGS-in-scaled-space / rescale_function / metrics）与端到端评估完全一致（CSV 在端到端字段上加 `beam_size`/`attempt` 两列）。端到端基线（model.pt, noise=0.1, 222 集）：r² 中位 0.783、>0.5 占 157/221。
 
 ```bash
-# M3 pmlb 评估 (改 --device / --noise_strength / --ckpt 即可)
+# M3 pmlb 自适应评估 (改 --device / --noise_strength / --ckpt 即可; adaptive + 并行 BFGS 默认开)
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference_m3.py \
     --device cuda:3 --noise_strength 0.1 \
     --ckpt checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth \
     > logs/m3_pmlb_eval.log 2>&1 &
-tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... (Ns)"
+tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... beam=N attempt=K (Ns)"
 ```
 
 停止：`pkill -f pmlb_batch_inference_m3`。
-续跑：直接重跑同命令（`load_existing_results` 按 `(dataset, noise_strength)` 跳过已完成，CSV 追加写）。**换权重 / 换噪声强度** → 结果落不同 CSV（默认按 `noise_strength` 自动分文件 `pmlb_m3_noise_{ns}.csv`；换权重想保留旧结果就显式 `--output_csv` 指新文件）从头跑。
+续跑：直接重跑同命令（`load_existing_results` 按 `(dataset, noise_strength)` 跳过已完成，CSV 追加写）。**换权重 / 换噪声强度** → 结果落不同 CSV（默认按 `noise_strength` 自动分文件 `pmlb_m3_adaptive_noise_{ns}.csv`；换权重想保留旧结果就显式 `--output_csv` 指新文件）从头跑。
 
 **关键参数**
 
@@ -199,13 +199,16 @@ tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... (Ns)"
 | `--noise_strength` | `0.0` | **目标噪声**：给 y 加相对噪声 `y*(1+ns·N(0,1))`；对齐端到端基线用 `0.1` |
 | `--ckpt` | `checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth` | **加载哪个 M3 权重**（denoiser） |
 | `--point_ckpt` | `model.pt` | freeze 的数值点 encoder（embedder+encoder） |
-| `--n_samples` | 32 | 采样候选数（M3 无 beam，用 n_samples 个不同噪声 batch 并行采样，按 r² 选优；功能等价 beam=32） |
+| `--n_samples` | 32 | **初始**采样规模（R²<阈值翻倍重试的起点；M3 无 beam，n_samples 个不同噪声 batch 并行采样） |
+| `--r2_threshold` | 0.9 | R² 达此阈值提前退出（选优口径 = scaled 空间 vs `y_to_fit`） |
+| `--max_retries` | 3 | R² 未达阈值的翻倍重试次数（总 attempt = max_retries+1，即 32→64→128→256） |
+| `--bfgs_workers` | `os.cpu_count()` | 并行 BFGS worker 数（fork；skeleton 去重后的唯一候选并行优化常数） |
 | `--n_ode_steps` | 100 | ODE Euler 步数（t:0→1，diffusion 采样步数；多更准但慢） |
 | `--max_length` | 128 | target 序列长度（同训练） |
 | `--max_rows` / `--max_input_points` | 200 / 200 | pmlb 行数上限 / 喂 cond 的数值点上限 |
 | `--rescale` | True | StandardScaler 标准化 X（训练数值点已标准化到 O(1)，必要；`--no-rescale` 关） |
 | `--noise_seed` / `--seed` | 0 / 0 | 噪声种子 / 采样种子 |
 | `--dataset_limit` | None | 只跑前 N 个数据集（smoke 用，如 `--dataset_limit 2`） |
-| `--output_csv` | `experiments/pmlb/results/pmlb_m3_noise_{ns}.csv` | 结果 CSV（默认按 noise_strength 自动分文件） |
+| `--output_csv` | `experiments/pmlb/results/pmlb_m3_adaptive_noise_{ns}.csv` | 结果 CSV（默认按 noise_strength 自动分文件；含 `beam_size`/`attempt` 列） |
 
-> 流程对齐细节：`apply_target_noise` 加噪→`y_to_fit`（BFGS 拟合目标）；`StandardScaler` 只标准化 X、不动 y；BFGS(Nelder-Mead) 在 scaled_X 空间拟合常数、reference=`y_to_fit`；`rescale_function` 把树里 `x_k` 包 `add(b_k,mul(a_k,x_k))`（常数不变）；报告口径=rescale 后树在原 X 求值 vs 干净 y。`refinement_type` 取 NoRef/BFGS 中 r² 较优者。try-except 仅包 BFGS（Nelder-Mead 失败 / 非有限 → 回退 raw）。smoke：M3 r² 超端到端基线（1027_ESL 0.87 vs 0.61，1028_SWD 0.35 vs -0.05）。
+> 流程对齐细节：`apply_target_noise` 加噪→`y_to_fit`（BFGS 拟合目标）；`StandardScaler` 只标准化 X、不动 y；BFGS(Nelder-Mead) 在 scaled_X 空间拟合常数、reference=`y_to_fit`；`rescale_function` 把树里 `x_k` 包 `add(b_k,mul(a_k,x_k))`（常数不变）；报告口径=rescale 后树在原 X 求值 vs 干净 y。`refinement_type` 取 NoRef/BFGS 中 r² 较优者。try-except 仅包 BFGS（Nelder-Mead 失败 / 非有限 → 回退 raw）。**自适应**：cond 只算一次（与采样数无关），每 attempt 仅重跑 ODE 采样 + 并行 BFGS；CSV 的 `beam_size`/`attempt` 记录命中最优的采样规模与轮次。smoke（best.pth step10000, n_samples=16 / max_retries=1 / 8 worker）：1027_ESL r2=0.866 beam=16 attempt=1、1028_SWD r2=0.333 beam=16 attempt=1（R²<0.9 已翻倍到 32 但未超过 16 的结果，故 attempt=1）。
