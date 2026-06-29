@@ -83,6 +83,8 @@ def main():
     ap.add_argument("--max_steps", type=int, default=200000)
     ap.add_argument("--batch_size", type=int, default=128)
     ap.add_argument("--lr", type=float, default=1e-4)
+    ap.add_argument("--lr_schedule", default="cosine",
+                    help="cosine (warmup->cosine 到 max_steps) 或 constant (warmup 后恒定峰值, 不衰减)")
     ap.add_argument("--warmup", type=int, default=1000)
     ap.add_argument("--eval_every", type=int, default=2000)
     ap.add_argument("--log_every", type=int, default=100)
@@ -97,11 +99,16 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--profile_steps", type=int, default=0,
                     help=">0: 跑 N 步打分段计时后退出 (诊断 GPU 负载瓶颈, 单卡)")
+    ap.add_argument("--probe_every", type=int, default=0,
+                    help=">0: 每 N 步在 val_chunks[0] 上测低 t 端单步去噪 rmse (t=0.02/0.1/0.5), "
+                         "密集监控低 t 端能力 (采样瓶颈指标); 0=关")
     # flow matching 超参 (ELF 实际默认, 同 M2)
     ap.add_argument("--latent_mean", type=float, default=-0.0004)
     ap.add_argument("--latent_std", type=float, default=0.9942)
     ap.add_argument("--p_mean", type=float, default=0.8)
     ap.add_argument("--p_std", type=float, default=0.8)
+    ap.add_argument("--time_schedule", default="logit_normal",
+                    help="denoise 分支 t 采样: logit_normal (sigmoid(randn*p_std+p_mean)) 或 uniform (U[0,1], 低 t 端样本充足)")
     ap.add_argument("--noise_scale", type=float, default=1.0)
     ap.add_argument("--t_eps", type=float, default=5e-2)
     ap.add_argument("--decoder_prob", type=float, default=0.5)
@@ -168,6 +175,8 @@ def main():
     def lr_lambda(step):
         if step < args.warmup:
             return step / max(1, args.warmup)
+        if args.lr_schedule == "constant":
+            return 1.0
         progress = (step - args.warmup) / max(1, args.max_steps - args.warmup)
         return 0.5 * (1.0 + math.cos(math.pi * progress))
 
@@ -304,7 +313,10 @@ def main():
         if prof:
             torch.cuda.synchronize(); _t.append(time.perf_counter())  # enc_cond
 
-        t = sample_timesteps(bs, args.p_mean, args.p_std, device)
+        if args.time_schedule == "uniform":
+            t = torch.rand(bs, device=device)
+        else:
+            t = sample_timesteps(bs, args.p_mean, args.p_std, device)
         denoiser_z = add_noise(x0, torch.randn_like(x0), t, args.noise_scale)   # M3: cond 物理分离, 无 cond_seq_mask
         lam = torch.sigmoid(torch.randn(bs, args.max_length, 1, device=device) * args.p_std + args.p_mean)
         decoder_z = lam * x0 + (1 - lam) * (torch.randn_like(x0) * args.noise_scale)
@@ -346,6 +358,22 @@ def main():
         if (step + 1) % args.log_every == 0 and is_main:
             print(f"step {step+1:6d} | train_ema {train_ema:.4f} | "
                   f"lr {optimizer.param_groups[0]['lr']:.2e} | {(time.time()-t0)/60:.1f}min", flush=True)
+
+        if args.probe_every > 0 and (step + 1) % args.probe_every == 0:
+            x0_v, _, valid_v, cond_emb_v, cond_mask_v = val_chunks[0]
+            bs_v = x0_v.shape[0]
+            denoiser.eval()
+            _errs = []
+            with torch.no_grad(), torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
+                for _tv in (0.02, 0.1, 0.5):
+                    _z = _tv * x0_v + (1 - _tv) * torch.randn_like(x0_v) * args.noise_scale
+                    _xp, _ = denoiser(_z, torch.full((bs_v,), _tv, device=device),
+                                      attention_mask=valid_v, cond=cond_emb_v, cond_mask=cond_mask_v)
+                    _errs.append(((x0_v - _xp.float()).pow(2).mean(-1)[valid_v].mean().sqrt()).item())
+            denoiser.train()
+            if is_main:
+                print(f"[probe] step {step+1:6d} | lr {optimizer.param_groups[0]['lr']:.2e} | "
+                      f"t=0.02 {_errs[0]:.3f} | t=0.1 {_errs[1]:.3f} | t=0.5 {_errs[2]:.3f}", flush=True)
 
         if (step + 1) % args.eval_every == 0:
             if ddp:

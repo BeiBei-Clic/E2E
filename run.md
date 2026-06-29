@@ -117,9 +117,16 @@ tail -f logs/flow_m2.log   # 每 log_every 步 train_ema, 每 eval_every 步 val
 M3 在 M2 基础上接入 condition：数值点 `(x,y)` → 数值点 encoder（`model.pt`，freeze）→ `cond_emb`，经 denoiser 的 **cross-attention** 注入。**弃用 ELF prepend**（prepend 破坏点数无关性——点数进主序列就要固定 `max_length`），改为每 block `[self-attn → cross-attn → FFN]`：cond 作 cross-attn 的 K/V（点数任意、不加噪、不进 loss），`max_length` 只含 target=128。expression encoder 仍 freeze 提供去噪目标 `x0`。从头训（denoiser 结构变，M2 权重不续）。详见计划文档 Step 6 / 项目记忆 `elf-sr-m3-cross-attention`。
 
 ```bash
-CUDA_VISIBLE_DEVICES=0,1,2,3 torchrun --nproc_per_node=4 train_flow_m3.py \
-    --num_workers 4 > logs/flow_m3.log 2>&1 &
-tail -f logs/flow_m3.log   # 每 log_every 步 train_ema, 每 eval_every 步 val_l2 + acc_correct + acc_shuffled + Δcond
+# uniform 时间调度 + lr 2e-3 (ELF 原版 lr 0.002): 修通低 t 端采样瓶颈。
+# 诊断: logit_normal(p_mean=0.8) 让 t<0.1 样本<0.01%, denoiser 低 t 端不学, ODE 从纯噪声出发即崩;
+# lr (1e-4 vs 2e-3) 对低 t 端无影响 (实验证明, t=0.02 rmse 三次都卡 0.99~1.00)。uniform + lr2e-3 让采样合法率 0.23→0.79。
+# GPU3 被占时用 3 卡 (effective batch 384); 4 卡全空时改 --nproc_per_node=4。
+CUDA_VISIBLE_DEVICES=0,1,2 torchrun --nproc_per_node=3 train_flow_m3.py \
+    --lr 2e-3 --time_schedule uniform --warmup 300 --max_steps 5000 \
+    --num_workers 4 --probe_every 200 --log_every 500 --eval_every 1000 \
+    --out_dir checkpoints/lr_search/uniform_cosine_lr2e-3 \
+    > logs/uniform_cosine_lr2e-3.log 2>&1 &
+tail -f logs/uniform_cosine_lr2e-3.log   # 每 log_every 步 train_ema, 每 probe_every 步 低t端rmse, 每 eval_every 步 val_l2+acc
 ```
 
 停止 / 续训同阶段 A/B（`pkill -f train_flow_m3.py`；`--resume {out_dir}/last.pth`）。
@@ -134,8 +141,12 @@ tail -f logs/flow_m3.log   # 每 log_every 步 train_ema, 每 eval_every 步 val
 | `--out_dir` | `checkpoints/flow_m3` | checkpoint 输出 |
 | `--batch_size` | 128 | 每卡 batch（denoiser 116.2M；序列 128，显存同 M2 ≈7GB/卡） |
 | `--num_workers` | 4 | 每 rank 后台数据生成进程（worker 里跑 `gen_expr` + 数值点 `encode`+`batch`；实测 4 已完全 overlap，不必更大） |
+| `--lr` | 2e-3 | ELF 原版 lr 0.002；1e-4 训 16K 步 decode acc 仅 0.6、采样合法率 0.23 |
+| `--time_schedule` | `uniform` | denoise 分支 t 采样：`uniform`（U[0,1]，低 t 端样本充足，修采样起点崩）替代 `logit_normal`(p_mean=0.8)。**关键**：p_mean=0.8 让 t<0.1 样本<0.01%，denoiser 低 t 端不学 |
+| `--lr_schedule` | `cosine` | warmup→cosine 到 max_steps；`constant` 实验证明前期 lr 大导致 loss spike，用正常 cosine |
+| `--probe_every` | 200 | >0：每 N 步测低 t 端单步去噪 rmse（t=0.02/0.1/0.5），密集监控采样瓶颈；0=关 |
 
-> M3 **不归一化 cond**（`cond_emb` 直接喂 cross-attn 的新 `kv_proj`，尺度差 std 0.29 vs target 1 由可学投影吸收）。flow matching 超参（`p_mean/p_std/noise_scale/t_eps/decoder_prob`）同 M2。encoder 前向套 **bf16 autocast**（freeze+no_grad）。
+> M3 **不归一化 cond**（`cond_emb` 直接喂 cross-attn 的新 `kv_proj`，尺度差 std 0.29 vs target 1 由可学投影吸收）。**时间调度改 uniform**（替代 M2 的 `logit_normal` p_mean=0.8）：p_mean=0.8 让 t<0.1 训练样本 <0.01%，denoiser 低 t 端（采样起点）不学，ODE 从纯噪声出发即崩（z_final rmse 1.1 不收敛）；uniform 让低 t 端有样本，采样合法率 0.23→0.79。`noise_scale/t_eps/decoder_prob` 同 M2。lr 用 2e-3（ELF 配方；实验证明 lr 大小对低 t 端无影响，但加速中高 t 收敛）。encoder 前向套 **bf16 autocast**（freeze+no_grad）。
 >
 > **GPU 负载（关键，踩过坑）**：`LinearPointEmbedder.forward` 把 CPU 编码（`encode`+`batch`，`float_encoder` 逐数值转 descriptor token，~2.2s/批）和 GPU 嵌入（`embed`+`compress`）混在一起。CPU 编码若留在主进程会卡死 GPU（worker 只能 overlap `gen_expr`，overlap 不了它）——这就是 `num_workers` 调多大都没用的根因。**解法**：worker 里跑完 `encode`+`batch`（纯 CPU，只读 `float_encoder`/`float_word2id`/`params`，不碰 GPU 权重，fork 安全），主进程 `encode_cond` 只剩 GPU `embed`+`compress`+`point_enc`（~0.5s）。实测 `num_workers=4` 单卡 2.2s/步、DDP 4 卡 2.7s/步（warmup），GPU 4×100%。诊断用 `--profile_steps N`（单卡跑 N 步打分段计时：data/enc_t/enc_c/noise/fwd/bwd/opt）。
 
@@ -145,6 +156,8 @@ tail -f logs/flow_m3.log   # 每 log_every 步 train_ema, 每 eval_every 步 val
 - **`Δcond = acc_correct − acc_shuffled` 显著为正**——正确 cond 比 batch 内打乱 cond 更准，直接证明生成依赖输入（否则 cross-attn 被无视、两者持平）。
 
 > smoke 已验证（单卡 `num_workers=0/2` 均通；val_l2 4 步 31.5→17.1 下降；可变点数 33~170 / 维度 1~10 正常）。负载优化后 4 卡 DDP 实测 2.7s/步（warmup）、GPU 4×100%、`enc_c` 2.7s→0.5s。DDP 删掉 `self_cond_proj`（M3 不用 self-cond）让所有参数 used，配 `find_unused_parameters=False` + `static_graph` + `gradient_as_bucket_view`（DDP 最佳实践）；util 周期性 100%↔30% 是 all-reduce 同步 + 各 rank forward 差异的固有低段（梯度通信仅 14ms，非瓶颈，无法消除），step 间隔 2.6s 波动<2% 即训练稳定。后续 Step 7 再加 self-cond / CFG / label-drop + 采样器（数值点 → 采样 → 表达式 → 新点 R²）。
+>
+> **采样 R² 评估**（`eval_flow_m3.py`，加载 checkpoint 测）：数值点 → ODE/SDE 采样 → 末步 decode → **常数优化**（Nelder-Mead 重拟合常数；拟合+R² 都用 `Node.val`——曾用 `BFGSRefinement`(sympytorch) 但 sympytorch 与 Node.val 对 inv/pow/log 数值不一致，导致 BFGS R² 反而 < raw，弃之）→ R²（reference 用 GT 表达式干净求值，弃含训练噪声的 y）。诊断：低 t 端单步去噪 rmse、ODE 收敛 rmse（z_final vs x0）、decode 合法率/多样性、R²（raw vs BFGS）。**结论（uniform+lr2e-3 5000步）**：常数优化有效（结构对的表达式 BFGS 后 R²≈1）；测D（单步 decode，z 接近 x0）BFGS R²>0.9 达 **55%**，测B（真实 ODE 采样）仅 **4%**——**瓶颈是 ODE 收敛**（t=0.02 端 0.645 不够低，z_final rmse 1.09 偏离 x0 → decode 结构错率上升），非 decode 头/常数优化；待突破（更长训练 / 更大模型 / self-cond）。
 
 ## 推理 / 评估（Step 7-8）
 
