@@ -129,7 +129,21 @@ CUDA_VISIBLE_DEVICES=0,1,2 torchrun --nproc_per_node=3 train_flow_m3.py \
 tail -f logs/uniform_cosine_lr2e-3.log   # 每 log_every 步 train_ema, 每 probe_every 步 低t端rmse, 每 eval_every 步 val_l2+acc
 ```
 
-停止 / 续训同阶段 A/B（`pkill -f train_flow_m3.py`；`--resume {out_dir}/last.pth`）。
+停止：`pkill -f train_flow_m3.py`。
+
+续训（从 best.pth 接着训；**关键：`--max_steps` 要调大**，否则 cosine 已到末端 lr=0、等于没训）：
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2 torchrun --nproc_per_node=3 train_flow_m3.py \
+    --lr 2e-3 --time_schedule uniform --warmup 300 --max_steps 10000 \
+    --num_workers 4 --probe_every 200 --log_every 500 --eval_every 1000 \
+    --resume checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth \
+    --out_dir checkpoints/lr_search/uniform_cosine_lr2e-3 \
+    > logs/uniform_cosine_lr2e-3_resume.log 2>&1 &
+tail -f logs/uniform_cosine_lr2e-3_resume.log
+```
+
+> `--resume` 恢复 model+optimizer+scheduler，从 step 5000 续到 `max_steps=10000`。cosine 周期随 max_steps 延长，lr 从中段（~1e-3）衰减到 10000（首步可能 lr=0，之后正常）。目的：让 t=0.02 端从 0.645 继续降，攻 ODE 收敛瓶颈（测B 真实 R² 仅 4%，瓶颈在 ODE 不收敛）。
 
 **关键参数**（其余 `lr/warmup/eval_every/log_every/patience/val_*/num_workers/resume/cpu/seed` 同阶段 B）
 
