@@ -189,3 +189,15 @@ step   9000 | train_ema 0.7065 | val_l2 0.0073 | acc_correct 0.650 | acc_shuffle
 [probe] step   9200 | lr 3.34e-05 | t=0.02 0.642 | t=0.1 0.112 | t=0.5 0.033
 [probe] step   9400 | lr 1.88e-05 | t=0.02 0.657 | t=0.1 0.118 | t=0.5 0.033
 step   9500 | train_ema 0.7149 | lr 1.31e-05 | 198.8min
+[probe] step   9600 | lr 8.38e-06 | t=0.02 0.653 | t=0.1 0.117 | t=0.5 0.033
+[probe] step   9800 | lr 2.10e-06 | t=0.02 0.633 | t=0.1 0.117 | t=0.5 0.033
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step  10000 | train_ema 0.7296 | lr 0.00e+00 | 221.7min
+[probe] step  10000 | lr 0.00e+00 | t=0.02 0.643 | t=0.1 0.116 | t=0.5 0.033
+step  10000 | train_ema 0.7296 | val_l2 0.0071 | acc_correct 0.651 | acc_shuffled 0.586 | Δcond +0.065 | best 0.0071@10000 | bad 0/20 | lr 0.00e+00 | 223.0min
+
+done. best val_l2=0.0071 @ step 10000
+checkpoints: checkpoints/lr_search/uniform_cosine_lr2e-3/{best,last}.pth
