@@ -112,6 +112,9 @@ def main():
     ap.add_argument("--noise_scale", type=float, default=1.0)
     ap.add_argument("--t_eps", type=float, default=5e-2)
     ap.add_argument("--decoder_prob", type=float, default=0.5)
+    ap.add_argument("--self_cond_prob", type=float, default=0.0,
+                    help="self-conditioning 概率 (0=关; 0.5=原始ELF默认). >0: no_grad forward 算 uncond x0 预测, "
+                         "按此概率拼成 [z, x_pred_prev] 2C 输入 (self_cond_proj), decoder 行置零 (对齐 ELF train_step)")
     args = ap.parse_args()
 
     # ---- DDP 初始化 ----
@@ -164,9 +167,10 @@ def main():
         text_encoder_dim=ep.enc_emb_dim, max_length=args.max_length,
         vocab_size=n_words, num_self_cond_cfg_tokens=0,
         gradient_checkpointing=True).to(device).train()
-    # M3 不用 self-conditioning (denoiser_z 永远单 dim, forward 里 self_cond_proj 分支不触发),
-    # 删之让所有参数 used -> 关 find_unused_parameters (省每步 graph 遍历 + 恢复 all-reduce overlap)
-    del denoiser.self_cond_proj
+    # self-conditioning: self_cond_prob>0 时输入恒 2C [z, x_pred_prev], self_cond_proj 每步被用 (不删);
+    # ==0 时单 dim 输入, 分支不触发, 删之让所有参数 used -> 关 find_unused_parameters
+    if args.self_cond_prob == 0:
+        del denoiser.self_cond_proj
     model = DDP(denoiser, device_ids=[local_rank], find_unused_parameters=False,
                 gradient_as_bucket_view=True, static_graph=True) if ddp else denoiser
 
@@ -254,6 +258,10 @@ def main():
     loader = DataLoader(ExprPointDataset(env, embedder, args.batch_size, args.seed + rank), **loader_kwargs)
     data_iter = iter(loader)
 
+    # self-cond 模型 eval/probe 输入 2C [z, 0] (对齐训练路径; 否则 text_proj 见原始 z = OOD)
+    def _sc_in(z):
+        return torch.cat([z, torch.zeros_like(z)], dim=-1) if args.self_cond_prob > 0 else z
+
     def evaluate():
         """返回 (val_l2, decode_acc_correct, decode_acc_shuffled)。"""
         denoiser.eval()
@@ -265,7 +273,7 @@ def main():
                 # val_l2 (denoise MSE)
                 t = sample_timesteps(bs, args.p_mean, args.p_std, device)
                 z = add_noise(x0, torch.randn_like(x0), t, args.noise_scale)
-                x_pred, _ = denoiser(z, t, attention_mask=valid, cond=cond_emb, cond_mask=cond_mask)
+                x_pred, _ = denoiser(_sc_in(z), t, attention_mask=valid, cond=cond_emb, cond_mask=cond_mask)
                 denom = torch.clamp(1.0 - t.reshape(-1, 1, 1), min=args.t_eps)
                 l2 = (((x_pred - z) / denom - (x0 - z) / denom) ** 2).mean(-1)
                 v = valid.float()
@@ -274,11 +282,11 @@ def main():
                 # decode 分支 (t=1): 同一 decoder_z, 对比正确 cond vs 打乱 cond
                 lam = torch.sigmoid(torch.randn(bs, args.max_length, 1, device=device) * args.p_std + args.p_mean)
                 decoder_z = lam * x0 + (1 - lam) * (torch.randn_like(x0) * args.noise_scale)
-                _, logits_c = denoiser(decoder_z, torch.ones(bs, device=device),
+                _, logits_c = denoiser(_sc_in(decoder_z), torch.ones(bs, device=device),
                                        attention_mask=valid, cond=cond_emb, cond_mask=cond_mask,
                                        decoder_step_active=True)
                 perm = torch.randperm(bs, device=device)
-                _, logits_s = denoiser(decoder_z, torch.ones(bs, device=device),
+                _, logits_s = denoiser(_sc_in(decoder_z), torch.ones(bs, device=device),
                                        attention_mask=valid, cond=cond_emb[perm], cond_mask=cond_mask[perm],
                                        decoder_step_active=True)
                 tot_acc_c += (logits_c.argmax(-1) == input_ids)[valid].float().sum().item()
@@ -326,7 +334,19 @@ def main():
         if prof:
             torch.cuda.synchronize(); _t.append(time.perf_counter())  # 采样 + 加噪
 
-        x_pred, logits = model(z_mixed, t_mixed, attention_mask=valid,
+        # self-conditioning: no_grad forward (denoiser unwrap, 不进 DDP 反向图) 算 uncond x0 预测,
+        # 按 self_cond_prob 拼成 2C 输入 [z_mixed, sc_half]; decoder 行 sc_half 置零 (对齐 ELF train_step)
+        if args.self_cond_prob > 0:
+            use_sc = (torch.rand(bs, device=device) < args.self_cond_prob).view(-1, 1, 1).to(x0.dtype)
+            with torch.no_grad(), torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
+                z_uncond_in = torch.cat([denoiser_z, torch.zeros_like(denoiser_z)], dim=-1)
+                x_pred_init, _ = denoiser(z_uncond_in, t, attention_mask=valid,
+                                          cond=cond_emb, cond_mask=cond_mask)
+            sc_half = x_pred_init.float() * use_sc * (1.0 - ds)
+            model_input = torch.cat([z_mixed, sc_half], dim=-1)
+        else:
+            model_input = z_mixed
+        x_pred, logits = model(model_input, t_mixed, attention_mask=valid,
                                cond=cond_emb, cond_mask=cond_mask, decoder_step_active=ds.view(-1))
         if prof:
             torch.cuda.synchronize(); _t.append(time.perf_counter())  # denoiser fwd
@@ -367,7 +387,7 @@ def main():
             with torch.no_grad(), torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
                 for _tv in (0.02, 0.1, 0.5):
                     _z = _tv * x0_v + (1 - _tv) * torch.randn_like(x0_v) * args.noise_scale
-                    _xp, _ = denoiser(_z, torch.full((bs_v,), _tv, device=device),
+                    _xp, _ = denoiser(_sc_in(_z), torch.full((bs_v,), _tv, device=device),
                                       attention_mask=valid_v, cond=cond_emb_v, cond_mask=cond_mask_v)
                     _errs.append(((x0_v - _xp.float()).pow(2).mean(-1)[valid_v].mean().sqrt()).item())
             denoiser.train()

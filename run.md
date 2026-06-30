@@ -145,6 +145,25 @@ tail -f logs/uniform_cosine_lr2e-3_resume.log
 
 > `--resume` 恢复 model+optimizer+scheduler，从 step 5000 续到 `max_steps=10000`。cosine 周期随 max_steps 延长，lr 从中段（~1e-3）衰减到 10000（首步可能 lr=0，之后正常）。目的：让 t=0.02 端从 0.645 继续降，攻 ODE 收敛瓶颈（测B 真实 R² 仅 4%，瓶颈在 ODE 不收敛）。
 
+### self-conditioning 对照实验（验证能否救 t=0 纯噪声启动失败）
+
+背景：pmlb 评估"表达式偏离真实"（R² 会骗人）。诊断（`experiments/diag_m3_{structure,trajectory,cosine,renorm}.py`）定位命门 = **t=0 纯噪声启动失败**：起点消融 t_start 0→终点 ‖z-x0‖=1.09、0.05→0.45；轨迹漂浮 ‖z-x0‖≈1.0 不收敛；t=0 cosine=0.66（有方向）但 renorm 无效 → 主因方向精度+OOD 漂移。self-cond 机制对症（跨步先验迭代精化方向），详见 `docs/adr/0001` + 项目记忆 `elf-sr-low-t-bottleneck` / `elf-sr-self-cond-experiment`。
+
+```bash
+# self-cond 朴素版 (num_self_cond_cfg_tokens=0): no_grad forward 算 uncond x0 预测 → 按 self_cond_prob 拼 [z, x_pred_prev] 2C 输入 (self_cond_proj 不删), decoder 行置零.
+# lr 1e-4 (项目默认, 非 best.pth 的 2e-3); DDP 4 卡 batch 96/卡=总384 (同 best.pth 公平); 从头训 (self_cond_proj 新参数, 不 --resume best.pth).
+CUDA_VISIBLE_DEVICES=0,1,2,3 nohup env PYTHONPATH=. .venv/bin/torchrun --nproc_per_node=4 \
+    train_flow_m3.py --lr 1e-4 --time_schedule uniform --warmup 1000 --max_steps 20000 \
+    --batch_size 96 --self_cond_prob 0.5 --probe_every 200 --eval_every 2000 --log_every 200 \
+    --out_dir checkpoints/m3_self_cond --num_workers 4 \
+    > logs/m3_self_cond_lr1e-4.log 2>&1 &
+tail -f logs/m3_self_cond_lr1e-4.log
+```
+
+- 配套组件**不重训**：expression encoder / point encoder 继续 freeze（self-cond 只改 denoiser 输入端）。denoiser **从头训**（self_cond_proj 新参数）。
+- DDP `static_graph=True` + self-cond（no_grad forward 用 denoiser unwrap）已 smoke test 验证兼容。
+- 验证：`PYTHONPATH=. .venv/bin/python experiments/diag_m3_self_cond.py --ckpt checkpoints/m3_self_cond/best.pth --self_cond`，对比 best.pth（t=0 启动 终点 1.09 / 结构正确率 0% / cosine 0.66）。
+
 **关键参数**（其余 `lr/warmup/eval_every/log_every/patience/val_*/num_workers/resume/cpu/seed` 同阶段 B）
 
 | 参数 | 默认 | 说明 |
