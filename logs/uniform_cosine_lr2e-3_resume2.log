@@ -159,3 +159,99 @@ step  12000 | train_ema 0.7237 | val_l2 0.0093 | acc_correct 0.648 | acc_shuffle
 /home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
   return fn(self.children[0].val(x))
 [probe] step  12200 | lr 6.79e-04 | t=0.02 0.665 | t=0.1 0.121 | t=0.5 0.035
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+[probe] step  12400 | lr 6.49e-04 | t=0.02 0.643 | t=0.1 0.114 | t=0.5 0.034
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step  12500 | train_ema 0.6986 | lr 6.34e-04 | 122.9min
+[probe] step  12600 | lr 6.19e-04 | t=0.02 0.664 | t=0.1 0.123 | t=0.5 0.034
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:133: RuntimeWarning: invalid value encountered in subtract
+  return self.children[0].val(x) - self.children[1].val(x)
+[probe] step  12800 | lr 5.90e-04 | t=0.02 0.649 | t=0.1 0.115 | t=0.5 0.033
+step  13000 | train_ema 0.7151 | lr 5.61e-04 | 168.6min
+[probe] step  13000 | lr 5.61e-04 | t=0.02 0.645 | t=0.1 0.121 | t=0.5 0.033
+step  13000 | train_ema 0.7151 | val_l2 0.0073 | acc_correct 0.649 | acc_shuffled 0.587 | Δcond +0.062 | best 0.0071@10000 | bad 3/20 | lr 5.61e-04 | 169.0min
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+[probe] step  13200 | lr 5.33e-04 | t=0.02 0.647 | t=0.1 0.119 | t=0.5 0.034
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+[probe] step  13400 | lr 5.05e-04 | t=0.02 0.648 | t=0.1 0.118 | t=0.5 0.033
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+step  13500 | train_ema 0.7124 | lr 4.91e-04 | 215.1min
+[probe] step  13600 | lr 4.77e-04 | t=0.02 0.650 | t=0.1 0.118 | t=0.5 0.033
+[probe] step  13800 | lr 4.50e-04 | t=0.02 0.655 | t=0.1 0.116 | t=0.5 0.033
+step  14000 | train_ema 0.6995 | lr 4.24e-04 | 259.7min
+[probe] step  14000 | lr 4.24e-04 | t=0.02 0.642 | t=0.1 0.113 | t=0.5 0.033
+step  14000 | train_ema 0.6995 | val_l2 0.0073 | acc_correct 0.652 | acc_shuffled 0.585 | Δcond +0.067 | best 0.0071@10000 | bad 4/20 | lr 4.24e-04 | 260.1min
+[probe] step  14200 | lr 3.98e-04 | t=0.02 0.647 | t=0.1 0.113 | t=0.5 0.032
+[probe] step  14400 | lr 3.73e-04 | t=0.02 0.660 | t=0.1 0.115 | t=0.5 0.032
+step  14500 | train_ema 0.7069 | lr 3.61e-04 | 300.0min
+[probe] step  14600 | lr 3.48e-04 | t=0.02 0.654 | t=0.1 0.116 | t=0.5 0.032
+[probe] step  14800 | lr 3.25e-04 | t=0.02 0.639 | t=0.1 0.117 | t=0.5 0.032
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step  15000 | train_ema 0.7198 | lr 3.01e-04 | 345.1min
+[probe] step  15000 | lr 3.01e-04 | t=0.02 0.638 | t=0.1 0.113 | t=0.5 0.032
+step  15000 | train_ema 0.7198 | val_l2 0.0069 | acc_correct 0.655 | acc_shuffled 0.586 | Δcond +0.070 | best 0.0069@15000 | bad 0/20 | lr 3.01e-04 | 345.8min
+[probe] step  15200 | lr 2.79e-04 | t=0.02 0.646 | t=0.1 0.113 | t=0.5 0.032
+[probe] step  15400 | lr 2.57e-04 | t=0.02 0.660 | t=0.1 0.112 | t=0.5 0.031
+step  15500 | train_ema 0.7002 | lr 2.47e-04 | 390.0min
+[probe] step  15600 | lr 2.36e-04 | t=0.02 0.654 | t=0.1 0.114 | t=0.5 0.031
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+[probe] step  15800 | lr 2.16e-04 | t=0.02 0.658 | t=0.1 0.115 | t=0.5 0.031
+step  16000 | train_ema 0.7110 | lr 1.97e-04 | 434.9min
+[probe] step  16000 | lr 1.97e-04 | t=0.02 0.649 | t=0.1 0.111 | t=0.5 0.031
+step  16000 | train_ema 0.7110 | val_l2 0.0061 | acc_correct 0.655 | acc_shuffled 0.588 | Δcond +0.067 | best 0.0061@16000 | bad 0/20 | lr 1.97e-04 | 435.3min
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:131: RuntimeWarning: invalid value encountered in add
+  return self.children[0].val(x) + self.children[1].val(x)
+[probe] step  16200 | lr 1.78e-04 | t=0.02 0.636 | t=0.1 0.112 | t=0.5 0.031
+[probe] step  16400 | lr 1.60e-04 | t=0.02 0.644 | t=0.1 0.112 | t=0.5 0.031
+step  16500 | train_ema 0.7255 | lr 1.52e-04 | 477.1min
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+[probe] step  16600 | lr 1.43e-04 | t=0.02 0.637 | t=0.1 0.114 | t=0.5 0.031
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+[probe] step  16800 | lr 1.27e-04 | t=0.02 0.653 | t=0.1 0.111 | t=0.5 0.031
+step  17000 | train_ema 0.6915 | lr 1.12e-04 | 521.4min
+[probe] step  17000 | lr 1.12e-04 | t=0.02 0.649 | t=0.1 0.112 | t=0.5 0.031
+step  17000 | train_ema 0.6915 | val_l2 0.0057 | acc_correct 0.659 | acc_shuffled 0.589 | Δcond +0.070 | best 0.0057@17000 | bad 0/20 | lr 1.12e-04 | 521.9min
+[probe] step  17200 | lr 9.80e-05 | t=0.02 0.638 | t=0.1 0.111 | t=0.5 0.031
+[probe] step  17400 | lr 8.47e-05 | t=0.02 0.639 | t=0.1 0.110 | t=0.5 0.030
+step  17500 | train_ema 0.6948 | lr 7.84e-05 | 565.0min
+[probe] step  17600 | lr 7.24e-05 | t=0.02 0.640 | t=0.1 0.115 | t=0.5 0.030
+[probe] step  17800 | lr 6.09e-05 | t=0.02 0.639 | t=0.1 0.114 | t=0.5 0.031
+step  18000 | train_ema 0.7192 | lr 5.04e-05 | 604.9min
+[probe] step  18000 | lr 5.04e-05 | t=0.02 0.643 | t=0.1 0.115 | t=0.5 0.030
+step  18000 | train_ema 0.7192 | val_l2 0.0057 | acc_correct 0.659 | acc_shuffled 0.588 | Δcond +0.071 | best 0.0057@17000 | bad 1/20 | lr 5.04e-05 | 605.3min
+[probe] step  18200 | lr 4.09e-05 | t=0.02 0.634 | t=0.1 0.116 | t=0.5 0.030
+[probe] step  18400 | lr 3.24e-05 | t=0.02 0.641 | t=0.1 0.109 | t=0.5 0.030
+step  18500 | train_ema 0.6936 | lr 2.85e-05 | 646.2min
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+[probe] step  18600 | lr 2.48e-05 | t=0.02 0.634 | t=0.1 0.110 | t=0.5 0.030
+[probe] step  18800 | lr 1.83e-05 | t=0.02 0.645 | t=0.1 0.113 | t=0.5 0.030
+step  19000 | train_ema 0.6941 | lr 1.27e-05 | 688.6min
+[probe] step  19000 | lr 1.27e-05 | t=0.02 0.643 | t=0.1 0.111 | t=0.5 0.030
+step  19000 | train_ema 0.6941 | val_l2 0.0057 | acc_correct 0.659 | acc_shuffled 0.586 | Δcond +0.073 | best 0.0057@19000 | bad 0/20 | lr 1.27e-05 | 689.1min
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:131: RuntimeWarning: invalid value encountered in add
+  return self.children[0].val(x) + self.children[1].val(x)
+[probe] step  19200 | lr 8.13e-06 | t=0.02 0.649 | t=0.1 0.110 | t=0.5 0.030
+[probe] step  19400 | lr 4.57e-06 | t=0.02 0.631 | t=0.1 0.109 | t=0.5 0.030
+step  19500 | train_ema 0.7122 | lr 3.18e-06 | 729.5min
+[probe] step  19600 | lr 2.03e-06 | t=0.02 0.638 | t=0.1 0.114 | t=0.5 0.030
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:133: RuntimeWarning: invalid value encountered in subtract
+  return self.children[0].val(x) - self.children[1].val(x)
+[probe] step  19800 | lr 5.09e-07 | t=0.02 0.642 | t=0.1 0.109 | t=0.5 0.030
+step  20000 | train_ema 0.7087 | lr 0.00e+00 | 767.2min
+[probe] step  20000 | lr 0.00e+00 | t=0.02 0.639 | t=0.1 0.109 | t=0.5 0.030
+step  20000 | train_ema 0.7087 | val_l2 0.0053 | acc_correct 0.659 | acc_shuffled 0.587 | Δcond +0.072 | best 0.0053@20000 | bad 0/20 | lr 0.00e+00 | 767.8min
+
+done. best val_l2=0.0053 @ step 20000
+checkpoints: checkpoints/lr_search/uniform_cosine_lr2e-3/{best,last}.pth
