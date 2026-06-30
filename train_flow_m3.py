@@ -94,7 +94,7 @@ def main():
     ap.add_argument("--num_workers", type=int, default=4)
     ap.add_argument("--max_length", type=int, default=128)
     ap.add_argument("--resume", default="")
-    ap.add_argument("--out_dir", default="checkpoints/flow_m3")
+    ap.add_argument("--out_dir", default="checkpoints/m3")
     ap.add_argument("--cpu", action="store_true")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--profile_steps", type=int, default=0,

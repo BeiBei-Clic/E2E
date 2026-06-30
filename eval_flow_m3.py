@@ -22,7 +22,7 @@ from symbolicregression.flow import ELF_models
 
 
 ap = argparse.ArgumentParser(description=__doc__)
-ap.add_argument("--ckpt", default="checkpoints/flow_m3/best.pth")
+ap.add_argument("--ckpt", default="checkpoints/m3/best.pth")
 ap.add_argument("--enc_ckpt", default="checkpoints/expression_encoder/best.pth")
 ap.add_argument("--point_ckpt", default="model.pt")
 ap.add_argument("--n_samples", type=int, default=128)

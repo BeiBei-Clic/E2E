@@ -273,7 +273,7 @@ def default_output_csv_m3(noise_strength):
 def build_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--datasets_dir", default="pmlb/datasets")
-    parser.add_argument("--ckpt", default="checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth")
+    parser.add_argument("--ckpt", default="checkpoints/m3/best.pth")
     parser.add_argument("--point_ckpt", default="model.pt")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--output_csv", default=None)

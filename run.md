@@ -124,7 +124,7 @@ M3 在 M2 基础上接入 condition：数值点 `(x,y)` → 数值点 encoder（
 CUDA_VISIBLE_DEVICES=0,1,2 torchrun --nproc_per_node=3 train_flow_m3.py \
     --lr 2e-3 --time_schedule uniform --warmup 300 --max_steps 5000 \
     --num_workers 4 --probe_every 200 --log_every 500 --eval_every 1000 \
-    --out_dir checkpoints/lr_search/uniform_cosine_lr2e-3 \
+    --out_dir checkpoints/m3 \
     > logs/uniform_cosine_lr2e-3.log 2>&1 &
 tail -f logs/uniform_cosine_lr2e-3.log   # 每 log_every 步 train_ema, 每 probe_every 步 低t端rmse, 每 eval_every 步 val_l2+acc
 ```
@@ -137,8 +137,8 @@ tail -f logs/uniform_cosine_lr2e-3.log   # 每 log_every 步 train_ema, 每 prob
 CUDA_VISIBLE_DEVICES=0,1,2 torchrun --nproc_per_node=3 train_flow_m3.py \
     --lr 2e-3 --time_schedule uniform --warmup 300 --max_steps 10000 \
     --num_workers 4 --probe_every 200 --log_every 500 --eval_every 1000 \
-    --resume checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth \
-    --out_dir checkpoints/lr_search/uniform_cosine_lr2e-3 \
+    --resume checkpoints/m3/best.pth \
+    --out_dir checkpoints/m3 \
     > logs/uniform_cosine_lr2e-3_resume.log 2>&1 &
 tail -f logs/uniform_cosine_lr2e-3_resume.log
 ```
@@ -152,7 +152,7 @@ tail -f logs/uniform_cosine_lr2e-3_resume.log
 | `--point_ckpt` | `model.pt` | freeze 的数值点 encoder（embedder+encoder，18.8M；含 `mw.env.float_encoder` 编码数值点） |
 | `--enc_ckpt` | `checkpoints/expression_encoder/best.pth` | freeze 的 expression encoder（提供 x0） |
 | `--max_length` | 128 | **target only**（cond 经 cross-attn 不占主序列，序列长度回到 M2 水平） |
-| `--out_dir` | `checkpoints/flow_m3` | checkpoint 输出 |
+| `--out_dir` | `checkpoints/m3` | checkpoint 输出 |
 | `--batch_size` | 128 | 每卡 batch（denoiser 116.2M；序列 128，显存同 M2 ≈7GB/卡） |
 | `--num_workers` | 4 | 每 rank 后台数据生成进程（worker 里跑 `gen_expr` + 数值点 `encode`+`batch`；实测 4 已完全 overlap，不必更大） |
 | `--lr` | 2e-3 | ELF 原版 lr 0.002；1e-4 训 16K 步 decode acc 仅 0.6、采样合法率 0.23 |
@@ -183,7 +183,7 @@ tail -f logs/uniform_cosine_lr2e-3_resume.log
 # M3 pmlb 自适应评估 (改 --device / --noise_strength / --ckpt 即可; adaptive + 并行 BFGS 默认开)
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference_m3.py \
     --device cuda:3 --noise_strength 0.1 \
-    --ckpt checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth \
+    --ckpt checkpoints/m3/best.pth \
     > logs/m3_pmlb_eval.log 2>&1 &
 tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... beam=N attempt=K (Ns)"
 ```
@@ -197,7 +197,7 @@ tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... beam=N attemp
 |---|---|---|
 | `--device` | `cuda` | **用哪张卡**：`cuda:0`/`cuda:3`（M3 推理 ~1.6G，可与训练同卡共存） |
 | `--noise_strength` | `0.0` | **目标噪声**：给 y 加相对噪声 `y*(1+ns·N(0,1))`；对齐端到端基线用 `0.1` |
-| `--ckpt` | `checkpoints/lr_search/uniform_cosine_lr2e-3/best.pth` | **加载哪个 M3 权重**（denoiser） |
+| `--ckpt` | `checkpoints/m3/best.pth` | **加载哪个 M3 权重**（denoiser） |
 | `--point_ckpt` | `model.pt` | freeze 的数值点 encoder（embedder+encoder） |
 | `--n_samples` | 32 | **初始**采样规模（R²<阈值翻倍重试的起点；M3 无 beam，n_samples 个不同噪声 batch 并行采样） |
 | `--r2_threshold` | 0.9 | R² 达此阈值提前退出（选优口径 = scaled 空间 vs `y_to_fit`） |
@@ -212,3 +212,19 @@ tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... beam=N attemp
 | `--output_csv` | `experiments/pmlb/results/pmlb_m3_adaptive_noise_{ns}.csv` | 结果 CSV（默认按 noise_strength 自动分文件；含 `beam_size`/`attempt` 列） |
 
 > 流程对齐细节：`apply_target_noise` 加噪→`y_to_fit`（BFGS 拟合目标）；`StandardScaler` 只标准化 X、不动 y；BFGS(Nelder-Mead) 在 scaled_X 空间拟合常数、reference=`y_to_fit`；`rescale_function` 把树里 `x_k` 包 `add(b_k,mul(a_k,x_k))`（常数不变）；报告口径=rescale 后树在原 X 求值 vs 干净 y。`refinement_type` 取 NoRef/BFGS 中 r² 较优者。try-except 仅包 BFGS（Nelder-Mead 失败 / 非有限 → 回退 raw）。**自适应**：cond 只算一次（与采样数无关），每 attempt 仅重跑 ODE 采样 + 并行 BFGS；CSV 的 `beam_size`/`attempt` 记录命中最优的采样规模与轮次。smoke（best.pth step10000, n_samples=16 / max_retries=1 / 8 worker）：1027_ESL r2=0.866 beam=16 attempt=1、1028_SWD r2=0.333 beam=16 attempt=1（R²<0.9 已翻倍到 32 但未超过 16 的结果，故 attempt=1）。
+
+### 结果汇总
+
+按 `noise_strength` 分组，对 Feynman / Strogatz / Black-box 三组统计 r² 均值/方差、recovery_rate（r²>0.9 占比）、complexity、seconds（`experiments/pmlb/pmlb_results_summary.py`）：
+
+```bash
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_results_summary.py \
+    --input_csvs \
+        experiments/pmlb/results/pmlb_m3_noise_0.1.csv \
+        experiments/pmlb/results/pmlb_m3_adaptive_noise_0.csv \
+        experiments/pmlb/results/pmlb_m3_adaptive_noise_0.001.csv \
+        experiments/pmlb/results/pmlb_m3_adaptive_noise_0.01.csv \
+    --output_csv experiments/pmlb/results/pmlb_m3_summary.csv
+```
+
+> 文件名含 `noise_{ns}.csv` 即自动推断噪声强度（`infer_noise_strength`）。⚠️ 横比注意：`pmlb_m3_noise_0.1.csv` 是**固定 n_samples=32 / step8000**，adaptive 三份（noise 0/0.001/0.01）是**翻倍到 256 / step10000** 且噪声更低——r² 差异主因是噪声高低，不可直接归因 adaptive；公平对比需同噪声的 adaptive noise=0.1。
