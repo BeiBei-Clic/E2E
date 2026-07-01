@@ -201,8 +201,9 @@ tail -f logs/m3_self_cond_lr1e-4.log
 ```bash
 # M3 pmlb 自适应评估 (改 --device / --noise_strength / --ckpt 即可; adaptive + 并行 BFGS 默认开)
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference_m3.py \
-    --device cuda:3 --noise_strength 0.1 \
-    --ckpt checkpoints/m3/best.pth \
+    --device cuda:0 --noise_strength 0.1 \
+    --ckpt checkpoints/m3_self_cond/best.pth \
+    --self_cond \
     > logs/m3_pmlb_eval.log 2>&1 &
 tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... beam=N attempt=K (Ns)"
 ```

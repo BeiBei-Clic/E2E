@@ -1,0 +1,450 @@
+W0630 15:26:46.319000 3329503 .venv/lib/python3.10/site-packages/torch/distributed/run.py:852] 
+W0630 15:26:46.319000 3329503 .venv/lib/python3.10/site-packages/torch/distributed/run.py:852] *****************************************
+W0630 15:26:46.319000 3329503 .venv/lib/python3.10/site-packages/torch/distributed/run.py:852] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0630 15:26:46.319000 3329503 .venv/lib/python3.10/site-packages/torch/distributed/run.py:852] *****************************************
+device=cuda:0 | world_size=4 | num_workers=4 | vocab 10292 | denoiser 116.2M | max_length 128 (target only) | steps 0->20000
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: overflow encountered in exp
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: overflow encountered in exp
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: overflow encountered in exp
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: overflow encountered in exp
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+step    200 | train_ema 10.4184 | lr 2.00e-05 | 7.3min
+[probe] step    200 | lr 2.00e-05 | t=0.02 0.849 | t=0.1 0.827 | t=0.5 0.648
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+step    400 | train_ema 2.5356 | lr 4.00e-05 | 14.6min
+[probe] step    400 | lr 4.00e-05 | t=0.02 0.836 | t=0.1 0.677 | t=0.5 0.254
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: overflow encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+step    600 | train_ema 1.0271 | lr 6.00e-05 | 21.8min
+[probe] step    600 | lr 6.00e-05 | t=0.02 0.820 | t=0.1 0.544 | t=0.5 0.105
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+step    800 | train_ema 0.8715 | lr 8.00e-05 | 29.1min
+[probe] step    800 | lr 8.00e-05 | t=0.02 0.785 | t=0.1 0.380 | t=0.5 0.078
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+step   1000 | train_ema 0.8341 | lr 1.00e-04 | 36.4min
+[probe] step   1000 | lr 1.00e-04 | t=0.02 0.752 | t=0.1 0.294 | t=0.5 0.063
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:216: RuntimeWarning: overflow encountered in power
+  return numerator ** 3
+step   1200 | train_ema 0.8077 | lr 1.00e-04 | 43.7min
+[probe] step   1200 | lr 1.00e-04 | t=0.02 0.732 | t=0.1 0.244 | t=0.5 0.061
+step   1400 | train_ema 0.7652 | lr 9.99e-05 | 51.0min
+[probe] step   1400 | lr 9.99e-05 | t=0.02 0.739 | t=0.1 0.213 | t=0.5 0.056
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+step   1600 | train_ema 0.7615 | lr 9.98e-05 | 58.3min
+[probe] step   1600 | lr 9.98e-05 | t=0.02 0.721 | t=0.1 0.192 | t=0.5 0.058
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:207: RuntimeWarning: overflow encountered in square
+  return numerator ** 2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+step   1800 | train_ema 0.7684 | lr 9.96e-05 | 65.5min
+[probe] step   1800 | lr 9.96e-05 | t=0.02 0.713 | t=0.1 0.183 | t=0.5 0.050
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   2000 | train_ema 0.7746 | lr 9.93e-05 | 72.7min
+[probe] step   2000 | lr 9.93e-05 | t=0.02 0.706 | t=0.1 0.179 | t=0.5 0.048
+/home/xyh/Symbolic_Regression/E2E/E2E/.venv/lib/python3.10/site-packages/torch/distributed/c10d_logger.py:83: UserWarning: barrier(): using the device under current context. You can specify `device_id` in `init_process_group` to mute this warning.
+  return func(*args, **kwargs)
+step   2000 | train_ema 0.7746 | val_l2 0.0194 | acc_correct 0.617 | acc_shuffled 0.596 | Δcond +0.021 | best 0.0194@2000 | bad 0/20 | lr 9.93e-05 | 72.9min
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+step   2200 | train_ema 0.7449 | lr 9.90e-05 | 80.1min
+[probe] step   2200 | lr 9.90e-05 | t=0.02 0.702 | t=0.1 0.176 | t=0.5 0.048
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+step   2400 | train_ema 0.7696 | lr 9.87e-05 | 87.2min
+[probe] step   2400 | lr 9.87e-05 | t=0.02 0.693 | t=0.1 0.163 | t=0.5 0.045
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+step   2600 | train_ema 0.7620 | lr 9.83e-05 | 94.5min
+[probe] step   2600 | lr 9.83e-05 | t=0.02 0.697 | t=0.1 0.163 | t=0.5 0.046
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   2800 | train_ema 0.7484 | lr 9.78e-05 | 101.8min
+[probe] step   2800 | lr 9.78e-05 | t=0.02 0.692 | t=0.1 0.159 | t=0.5 0.044
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+step   3000 | train_ema 0.7507 | lr 9.73e-05 | 109.2min
+[probe] step   3000 | lr 9.73e-05 | t=0.02 0.679 | t=0.1 0.157 | t=0.5 0.043
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   3200 | train_ema 0.7481 | lr 9.67e-05 | 116.6min
+[probe] step   3200 | lr 9.67e-05 | t=0.02 0.684 | t=0.1 0.151 | t=0.5 0.042
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   3400 | train_ema 0.7387 | lr 9.61e-05 | 123.9min
+[probe] step   3400 | lr 9.61e-05 | t=0.02 0.686 | t=0.1 0.147 | t=0.5 0.041
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:133: RuntimeWarning: invalid value encountered in subtract
+  return self.children[0].val(x) - self.children[1].val(x)
+step   3600 | train_ema 0.7665 | lr 9.55e-05 | 131.1min
+[probe] step   3600 | lr 9.55e-05 | t=0.02 0.678 | t=0.1 0.151 | t=0.5 0.041
+step   3800 | train_ema 0.7273 | lr 9.47e-05 | 138.5min
+[probe] step   3800 | lr 9.47e-05 | t=0.02 0.671 | t=0.1 0.147 | t=0.5 0.041
+step   4000 | train_ema 0.7330 | lr 9.40e-05 | 145.7min
+[probe] step   4000 | lr 9.40e-05 | t=0.02 0.676 | t=0.1 0.146 | t=0.5 0.041
+step   4000 | train_ema 0.7330 | val_l2 0.0129 | acc_correct 0.631 | acc_shuffled 0.597 | Δcond +0.034 | best 0.0129@4000 | bad 0/20 | lr 9.40e-05 | 146.2min
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   4200 | train_ema 0.7287 | lr 9.32e-05 | 153.5min
+[probe] step   4200 | lr 9.32e-05 | t=0.02 0.670 | t=0.1 0.146 | t=0.5 0.039
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+step   4400 | train_ema 0.7359 | lr 9.23e-05 | 160.6min
+[probe] step   4400 | lr 9.23e-05 | t=0.02 0.670 | t=0.1 0.151 | t=0.5 0.039
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in cos
+  return fn(self.children[0].val(x))
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in sin
+  return fn(self.children[0].val(x))
+step   4600 | train_ema 0.7137 | lr 9.14e-05 | 168.0min
+[probe] step   4600 | lr 9.14e-05 | t=0.02 0.669 | t=0.1 0.147 | t=0.5 0.039
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   4800 | train_ema 0.7440 | lr 9.05e-05 | 175.7min
+[probe] step   4800 | lr 9.05e-05 | t=0.02 0.672 | t=0.1 0.141 | t=0.5 0.040
+step   5000 | train_ema 0.7336 | lr 8.95e-05 | 183.4min
+[probe] step   5000 | lr 8.95e-05 | t=0.02 0.672 | t=0.1 0.146 | t=0.5 0.039
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   5200 | train_ema 0.7286 | lr 8.84e-05 | 190.9min
+[probe] step   5200 | lr 8.84e-05 | t=0.02 0.670 | t=0.1 0.141 | t=0.5 0.038
+step   5400 | train_ema 0.7496 | lr 8.73e-05 | 198.5min
+[probe] step   5400 | lr 8.73e-05 | t=0.02 0.671 | t=0.1 0.142 | t=0.5 0.039
+step   5600 | train_ema 0.7152 | lr 8.62e-05 | 205.7min
+[probe] step   5600 | lr 8.62e-05 | t=0.02 0.668 | t=0.1 0.144 | t=0.5 0.039
+step   5800 | train_ema 0.7415 | lr 8.51e-05 | 213.1min
+[probe] step   5800 | lr 8.51e-05 | t=0.02 0.674 | t=0.1 0.138 | t=0.5 0.038
+step   6000 | train_ema 0.7242 | lr 8.39e-05 | 220.4min
+[probe] step   6000 | lr 8.39e-05 | t=0.02 0.661 | t=0.1 0.139 | t=0.5 0.037
+step   6000 | train_ema 0.7242 | val_l2 0.0109 | acc_correct 0.641 | acc_shuffled 0.595 | Δcond +0.047 | best 0.0109@6000 | bad 0/20 | lr 8.39e-05 | 220.9min
+step   6200 | train_ema 0.7294 | lr 8.26e-05 | 227.9min
+[probe] step   6200 | lr 8.26e-05 | t=0.02 0.659 | t=0.1 0.145 | t=0.5 0.037
+step   6400 | train_ema 0.7244 | lr 8.14e-05 | 234.8min
+[probe] step   6400 | lr 8.14e-05 | t=0.02 0.675 | t=0.1 0.132 | t=0.5 0.037
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   6600 | train_ema 0.7271 | lr 8.01e-05 | 242.1min
+[probe] step   6600 | lr 8.01e-05 | t=0.02 0.659 | t=0.1 0.133 | t=0.5 0.037
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   6800 | train_ema 0.7183 | lr 7.87e-05 | 249.2min
+[probe] step   6800 | lr 7.87e-05 | t=0.02 0.658 | t=0.1 0.139 | t=0.5 0.037
+step   7000 | train_ema 0.7011 | lr 7.73e-05 | 256.1min
+[probe] step   7000 | lr 7.73e-05 | t=0.02 0.669 | t=0.1 0.134 | t=0.5 0.037
+step   7200 | train_ema 0.7097 | lr 7.59e-05 | 263.2min
+[probe] step   7200 | lr 7.59e-05 | t=0.02 0.674 | t=0.1 0.138 | t=0.5 0.036
+step   7400 | train_ema 0.7053 | lr 7.45e-05 | 270.3min
+[probe] step   7400 | lr 7.45e-05 | t=0.02 0.657 | t=0.1 0.134 | t=0.5 0.037
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   7600 | train_ema 0.6952 | lr 7.31e-05 | 277.5min
+[probe] step   7600 | lr 7.31e-05 | t=0.02 0.657 | t=0.1 0.129 | t=0.5 0.036
+step   7800 | train_ema 0.7092 | lr 7.16e-05 | 284.8min
+[probe] step   7800 | lr 7.16e-05 | t=0.02 0.661 | t=0.1 0.134 | t=0.5 0.036
+step   8000 | train_ema 0.6946 | lr 7.01e-05 | 292.1min
+[probe] step   8000 | lr 7.01e-05 | t=0.02 0.650 | t=0.1 0.138 | t=0.5 0.036
+step   8000 | train_ema 0.6946 | val_l2 0.0089 | acc_correct 0.648 | acc_shuffled 0.593 | Δcond +0.055 | best 0.0089@8000 | bad 0/20 | lr 7.01e-05 | 292.6min
+step   8200 | train_ema 0.6954 | lr 6.86e-05 | 300.0min
+[probe] step   8200 | lr 6.86e-05 | t=0.02 0.661 | t=0.1 0.131 | t=0.5 0.035
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:131: RuntimeWarning: invalid value encountered in add
+  return self.children[0].val(x) + self.children[1].val(x)
+step   8400 | train_ema 0.6824 | lr 6.70e-05 | 307.2min
+[probe] step   8400 | lr 6.70e-05 | t=0.02 0.666 | t=0.1 0.129 | t=0.5 0.035
+step   8600 | train_ema 0.7123 | lr 6.55e-05 | 314.5min
+[probe] step   8600 | lr 6.55e-05 | t=0.02 0.666 | t=0.1 0.129 | t=0.5 0.036
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step   8800 | train_ema 0.6970 | lr 6.39e-05 | 321.7min
+[probe] step   8800 | lr 6.39e-05 | t=0.02 0.657 | t=0.1 0.127 | t=0.5 0.036
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+step   9000 | train_ema 0.6999 | lr 6.23e-05 | 329.0min
+[probe] step   9000 | lr 6.23e-05 | t=0.02 0.655 | t=0.1 0.129 | t=0.5 0.035
+step   9200 | train_ema 0.7089 | lr 6.07e-05 | 336.4min
+[probe] step   9200 | lr 6.07e-05 | t=0.02 0.660 | t=0.1 0.128 | t=0.5 0.035
+step   9400 | train_ema 0.6806 | lr 5.90e-05 | 343.8min
+[probe] step   9400 | lr 5.90e-05 | t=0.02 0.659 | t=0.1 0.130 | t=0.5 0.035
+step   9600 | train_ema 0.7165 | lr 5.74e-05 | 350.9min
+[probe] step   9600 | lr 5.74e-05 | t=0.02 0.660 | t=0.1 0.129 | t=0.5 0.035
+step   9800 | train_ema 0.6816 | lr 5.58e-05 | 357.8min
+[probe] step   9800 | lr 5.58e-05 | t=0.02 0.662 | t=0.1 0.128 | t=0.5 0.035
+step  10000 | train_ema 0.6966 | lr 5.41e-05 | 364.7min
+[probe] step  10000 | lr 5.41e-05 | t=0.02 0.663 | t=0.1 0.134 | t=0.5 0.035
+step  10000 | train_ema 0.6966 | val_l2 0.0079 | acc_correct 0.651 | acc_shuffled 0.594 | Δcond +0.056 | best 0.0079@10000 | bad 0/20 | lr 5.41e-05 | 365.1min
+step  10200 | train_ema 0.7112 | lr 5.25e-05 | 372.0min
+[probe] step  10200 | lr 5.25e-05 | t=0.02 0.650 | t=0.1 0.125 | t=0.5 0.035
+step  10400 | train_ema 0.7035 | lr 5.08e-05 | 378.8min
+[probe] step  10400 | lr 5.08e-05 | t=0.02 0.651 | t=0.1 0.133 | t=0.5 0.034
+step  10600 | train_ema 0.6920 | lr 4.92e-05 | 385.7min
+[probe] step  10600 | lr 4.92e-05 | t=0.02 0.655 | t=0.1 0.127 | t=0.5 0.034
+step  10800 | train_ema 0.6872 | lr 4.75e-05 | 392.6min
+[probe] step  10800 | lr 4.75e-05 | t=0.02 0.663 | t=0.1 0.124 | t=0.5 0.035
+step  11000 | train_ema 0.7085 | lr 4.59e-05 | 399.5min
+[probe] step  11000 | lr 4.59e-05 | t=0.02 0.668 | t=0.1 0.134 | t=0.5 0.034
+step  11200 | train_ema 0.7039 | lr 4.42e-05 | 406.5min
+[probe] step  11200 | lr 4.42e-05 | t=0.02 0.644 | t=0.1 0.130 | t=0.5 0.034
+step  11400 | train_ema 0.7050 | lr 4.26e-05 | 413.8min
+[probe] step  11400 | lr 4.26e-05 | t=0.02 0.666 | t=0.1 0.126 | t=0.5 0.034
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+step  11600 | train_ema 0.6962 | lr 4.10e-05 | 421.1min
+[probe] step  11600 | lr 4.10e-05 | t=0.02 0.655 | t=0.1 0.131 | t=0.5 0.034
+step  11800 | train_ema 0.6869 | lr 3.93e-05 | 428.4min
+[probe] step  11800 | lr 3.93e-05 | t=0.02 0.655 | t=0.1 0.131 | t=0.5 0.034
+step  12000 | train_ema 0.6876 | lr 3.77e-05 | 435.6min
+[probe] step  12000 | lr 3.77e-05 | t=0.02 0.654 | t=0.1 0.127 | t=0.5 0.034
+step  12000 | train_ema 0.6876 | val_l2 0.0077 | acc_correct 0.656 | acc_shuffled 0.594 | Δcond +0.062 | best 0.0077@12000 | bad 0/20 | lr 3.77e-05 | 436.2min
+step  12200 | train_ema 0.6955 | lr 3.61e-05 | 443.6min
+[probe] step  12200 | lr 3.61e-05 | t=0.02 0.645 | t=0.1 0.131 | t=0.5 0.034
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:131: RuntimeWarning: invalid value encountered in add
+  return self.children[0].val(x) + self.children[1].val(x)
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+step  12400 | train_ema 0.7024 | lr 3.45e-05 | 450.6min
+[probe] step  12400 | lr 3.45e-05 | t=0.02 0.661 | t=0.1 0.129 | t=0.5 0.034
+step  12600 | train_ema 0.6871 | lr 3.30e-05 | 457.7min
+[probe] step  12600 | lr 3.30e-05 | t=0.02 0.656 | t=0.1 0.126 | t=0.5 0.034
+step  12800 | train_ema 0.6807 | lr 3.14e-05 | 464.7min
+[probe] step  12800 | lr 3.14e-05 | t=0.02 0.648 | t=0.1 0.126 | t=0.5 0.034
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:133: RuntimeWarning: invalid value encountered in subtract
+  return self.children[0].val(x) - self.children[1].val(x)
+step  13000 | train_ema 0.6712 | lr 2.99e-05 | 471.6min
+[probe] step  13000 | lr 2.99e-05 | t=0.02 0.648 | t=0.1 0.125 | t=0.5 0.034
+step  13200 | train_ema 0.6749 | lr 2.84e-05 | 478.5min
+[probe] step  13200 | lr 2.84e-05 | t=0.02 0.654 | t=0.1 0.125 | t=0.5 0.033
+step  13400 | train_ema 0.6944 | lr 2.69e-05 | 485.4min
+[probe] step  13400 | lr 2.69e-05 | t=0.02 0.658 | t=0.1 0.122 | t=0.5 0.033
+step  13600 | train_ema 0.6961 | lr 2.55e-05 | 492.3min
+[probe] step  13600 | lr 2.55e-05 | t=0.02 0.652 | t=0.1 0.125 | t=0.5 0.034
+step  13800 | train_ema 0.6733 | lr 2.41e-05 | 499.2min
+[probe] step  13800 | lr 2.41e-05 | t=0.02 0.653 | t=0.1 0.124 | t=0.5 0.033
+step  14000 | train_ema 0.6795 | lr 2.27e-05 | 506.1min
+[probe] step  14000 | lr 2.27e-05 | t=0.02 0.647 | t=0.1 0.127 | t=0.5 0.033
+step  14000 | train_ema 0.6795 | val_l2 0.0070 | acc_correct 0.656 | acc_shuffled 0.593 | Δcond +0.063 | best 0.0070@14000 | bad 0/20 | lr 2.27e-05 | 506.5min
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:133: RuntimeWarning: invalid value encountered in subtract
+  return self.children[0].val(x) - self.children[1].val(x)
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:133: RuntimeWarning: invalid value encountered in subtract
+  return self.children[0].val(x) - self.children[1].val(x)
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:133: RuntimeWarning: invalid value encountered in subtract
+  return self.children[0].val(x) - self.children[1].val(x)
+step  14200 | train_ema 0.6879 | lr 2.13e-05 | 513.4min
+[probe] step  14200 | lr 2.13e-05 | t=0.02 0.641 | t=0.1 0.123 | t=0.5 0.033
+step  14400 | train_ema 0.6710 | lr 1.99e-05 | 520.3min
+[probe] step  14400 | lr 1.99e-05 | t=0.02 0.648 | t=0.1 0.128 | t=0.5 0.033
+step  14600 | train_ema 0.6841 | lr 1.86e-05 | 527.2min
+[probe] step  14600 | lr 1.86e-05 | t=0.02 0.652 | t=0.1 0.123 | t=0.5 0.033
+step  14800 | train_ema 0.6882 | lr 1.74e-05 | 534.1min
+[probe] step  14800 | lr 1.74e-05 | t=0.02 0.645 | t=0.1 0.127 | t=0.5 0.033
+step  15000 | train_ema 0.6615 | lr 1.61e-05 | 541.0min
+[probe] step  15000 | lr 1.61e-05 | t=0.02 0.645 | t=0.1 0.123 | t=0.5 0.033
+step  15200 | train_ema 0.6821 | lr 1.49e-05 | 547.9min
+[probe] step  15200 | lr 1.49e-05 | t=0.02 0.647 | t=0.1 0.124 | t=0.5 0.033
+step  15400 | train_ema 0.6825 | lr 1.38e-05 | 554.8min
+[probe] step  15400 | lr 1.38e-05 | t=0.02 0.661 | t=0.1 0.123 | t=0.5 0.033
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:242: RuntimeWarning: invalid value encountered in tan
+  return fn(self.children[0].val(x))
+step  15600 | train_ema 0.6758 | lr 1.27e-05 | 561.7min
+[probe] step  15600 | lr 1.27e-05 | t=0.02 0.652 | t=0.1 0.124 | t=0.5 0.033
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+step  15800 | train_ema 0.6651 | lr 1.16e-05 | 568.6min
+[probe] step  15800 | lr 1.16e-05 | t=0.02 0.654 | t=0.1 0.122 | t=0.5 0.033
+step  16000 | train_ema 0.6805 | lr 1.05e-05 | 575.4min
+[probe] step  16000 | lr 1.05e-05 | t=0.02 0.660 | t=0.1 0.123 | t=0.5 0.033
+step  16000 | train_ema 0.6805 | val_l2 0.0071 | acc_correct 0.657 | acc_shuffled 0.593 | Δcond +0.064 | best 0.0070@14000 | bad 1/20 | lr 1.05e-05 | 575.7min
+step  16200 | train_ema 0.6888 | lr 9.55e-06 | 582.6min
+[probe] step  16200 | lr 9.55e-06 | t=0.02 0.662 | t=0.1 0.120 | t=0.5 0.034
+step  16400 | train_ema 0.6742 | lr 8.60e-06 | 589.5min
+[probe] step  16400 | lr 8.60e-06 | t=0.02 0.652 | t=0.1 0.125 | t=0.5 0.033
+step  16600 | train_ema 0.6705 | lr 7.70e-06 | 596.4min
+[probe] step  16600 | lr 7.70e-06 | t=0.02 0.648 | t=0.1 0.121 | t=0.5 0.033
+step  16800 | train_ema 0.6743 | lr 6.84e-06 | 603.3min
+[probe] step  16800 | lr 6.84e-06 | t=0.02 0.657 | t=0.1 0.124 | t=0.5 0.033
+step  17000 | train_ema 0.6707 | lr 6.03e-06 | 610.2min
+[probe] step  17000 | lr 6.03e-06 | t=0.02 0.657 | t=0.1 0.122 | t=0.5 0.033
+step  17200 | train_ema 0.6858 | lr 5.26e-06 | 617.1min
+[probe] step  17200 | lr 5.26e-06 | t=0.02 0.648 | t=0.1 0.128 | t=0.5 0.033
+step  17400 | train_ema 0.6704 | lr 4.55e-06 | 624.0min
+[probe] step  17400 | lr 4.55e-06 | t=0.02 0.650 | t=0.1 0.121 | t=0.5 0.033
+step  17600 | train_ema 0.6957 | lr 3.89e-06 | 630.8min
+[probe] step  17600 | lr 3.89e-06 | t=0.02 0.643 | t=0.1 0.118 | t=0.5 0.033
+step  17800 | train_ema 0.6632 | lr 3.27e-06 | 637.7min
+[probe] step  17800 | lr 3.27e-06 | t=0.02 0.644 | t=0.1 0.125 | t=0.5 0.033
+step  18000 | train_ema 0.6584 | lr 2.71e-06 | 644.6min
+[probe] step  18000 | lr 2.71e-06 | t=0.02 0.653 | t=0.1 0.121 | t=0.5 0.033
+step  18000 | train_ema 0.6584 | val_l2 0.0067 | acc_correct 0.659 | acc_shuffled 0.591 | Δcond +0.068 | best 0.0067@18000 | bad 0/20 | lr 2.71e-06 | 645.0min
+step  18200 | train_ema 0.6710 | lr 2.20e-06 | 651.8min
+[probe] step  18200 | lr 2.20e-06 | t=0.02 0.649 | t=0.1 0.123 | t=0.5 0.033
+step  18400 | train_ema 0.6730 | lr 1.74e-06 | 658.7min
+[probe] step  18400 | lr 1.74e-06 | t=0.02 0.652 | t=0.1 0.121 | t=0.5 0.033
+step  18600 | train_ema 0.6808 | lr 1.33e-06 | 665.6min
+[probe] step  18600 | lr 1.33e-06 | t=0.02 0.644 | t=0.1 0.121 | t=0.5 0.033
+step  18800 | train_ema 0.7000 | lr 9.81e-07 | 672.4min
+[probe] step  18800 | lr 9.81e-07 | t=0.02 0.645 | t=0.1 0.120 | t=0.5 0.033
+step  19000 | train_ema 0.6788 | lr 6.82e-07 | 679.3min
+[probe] step  19000 | lr 6.82e-07 | t=0.02 0.655 | t=0.1 0.126 | t=0.5 0.033
+/home/xyh/Symbolic_Regression/E2E/E2E/symbolicregression/envs/generators.py:137: RuntimeWarning: invalid value encountered in multiply
+  return m1 * m2
+step  19200 | train_ema 0.6731 | lr 4.37e-07 | 686.2min
+[probe] step  19200 | lr 4.37e-07 | t=0.02 0.640 | t=0.1 0.125 | t=0.5 0.033
+step  19400 | train_ema 0.6662 | lr 2.46e-07 | 693.1min
+[probe] step  19400 | lr 2.46e-07 | t=0.02 0.642 | t=0.1 0.122 | t=0.5 0.033
+step  19600 | train_ema 0.6742 | lr 1.09e-07 | 700.0min
+[probe] step  19600 | lr 1.09e-07 | t=0.02 0.646 | t=0.1 0.121 | t=0.5 0.033
+step  19800 | train_ema 0.6886 | lr 2.73e-08 | 706.8min
+[probe] step  19800 | lr 2.73e-08 | t=0.02 0.653 | t=0.1 0.123 | t=0.5 0.033
+step  20000 | train_ema 0.6833 | lr 0.00e+00 | 713.7min
+[probe] step  20000 | lr 0.00e+00 | t=0.02 0.651 | t=0.1 0.123 | t=0.5 0.033
+step  20000 | train_ema 0.6833 | val_l2 0.0067 | acc_correct 0.661 | acc_shuffled 0.594 | Δcond +0.068 | best 0.0067@20000 | bad 0/20 | lr 0.00e+00 | 714.2min
+
+done. best val_l2=0.0067 @ step 20000
+checkpoints: checkpoints/m3_self_cond/{best,last}.pth

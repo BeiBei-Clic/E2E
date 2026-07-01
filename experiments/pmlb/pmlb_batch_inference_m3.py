@@ -71,7 +71,7 @@ def encode_cond(bags, embedder, point_enc, device, use_amp):
 
 
 def ode_sample_decode(denoiser, cond_emb, cond_mask, n_samples, n_ode_steps,
-                      max_length, d_model, device, use_amp):
+                      max_length, d_model, device, use_amp, self_cond=False):
     """z=randn*n_samples -> ODE t:0->1 -> 末步 decode -> argmax ids (n_samples, max_length)。
     n_samples 个候选在同一 batch 并行采样 (同 cond 广播), 一次轨迹出 n_samples 个表达式。"""
     cond_b = cond_emb.expand(n_samples, -1, -1)
@@ -79,15 +79,19 @@ def ode_sample_decode(denoiser, cond_emb, cond_mask, n_samples, n_ode_steps,
     attn = torch.ones(n_samples, max_length, dtype=torch.bool, device=device)
     t_steps = torch.linspace(0.0, 1.0, n_ode_steps + 1, device=device)
     z = torch.randn(n_samples, max_length, d_model, device=device) * NOISE_SCALE
+    x_prev = torch.zeros_like(z)  # self-cond 第一步无先验 (self_cond=False 不用)
     with torch.no_grad(), torch.amp.autocast("cuda", dtype=torch.bfloat16, enabled=use_amp):
         for i in range(n_ode_steps):
             t = t_steps[i].item()
             t_next = t_steps[i + 1].item()
-            x_pred, _ = denoiser(z, torch.full((n_samples,), t, device=device),
+            z_in = torch.cat([z, x_prev], dim=-1) if self_cond else z
+            x_pred, _ = denoiser(z_in, torch.full((n_samples,), t, device=device),
                                  attention_mask=attn, cond=cond_b, cond_mask=mask_b)
             v = (x_pred.float() - z) / max(1.0 - t, T_EPS)
             z = z + (t_next - t) * v
-        _, logits = denoiser(z, torch.ones(n_samples, device=device),
+            x_prev = x_pred
+        z_final = torch.cat([z, torch.zeros_like(z)], dim=-1) if self_cond else z
+        _, logits = denoiser(z_final, torch.ones(n_samples, device=device),
                              attention_mask=attn, cond=cond_b, cond_mask=mask_b,
                              decoder_step_active=True)
     return logits.argmax(-1).cpu()
@@ -208,7 +212,7 @@ def run_inference_m3(dataset_name, denoiser, embedder, point_enc, env, eos_id,
     current_samples = args.n_samples
     for attempt in range(args.max_retries + 1):
         ids = ode_sample_decode(denoiser, cond_emb, cond_mask, current_samples,
-                                args.n_ode_steps, args.max_length, d_model, device, use_amp)
+                                args.n_ode_steps, args.max_length, d_model, device, use_amp, args.self_cond)
 
         # decode + skeleton 去重 -> 唯一结构候选 (同结构不同常数只 BFGS 一次, 对齐原 refine)
         unique_trees, seen = [], {}
@@ -294,6 +298,8 @@ def build_parser():
     parser.add_argument("--noise_seed", type=int, default=0)
     parser.add_argument("--dataset_limit", type=int, default=None)
     parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--self_cond", action="store_true",
+                        help="self-cond 模型评估: 不 del self_cond_proj + 采样走 2C [z, x_pred_prev] (第一步 zeros, decode 步 [z,0])")
     return parser
 
 
@@ -324,7 +330,8 @@ def main():
     denoiser = ELF_models["ELF-B"](
         text_encoder_dim=params.dec_emb_dim, max_length=args.max_length,
         vocab_size=n_words, num_self_cond_cfg_tokens=0).to(device).eval()
-    del denoiser.self_cond_proj
+    if not args.self_cond:
+        del denoiser.self_cond_proj
     ck = torch.load(args.ckpt, map_location="cpu", weights_only=False)
     denoiser.load_state_dict(ck["model"])
     d_model = params.dec_emb_dim
