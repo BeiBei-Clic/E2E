@@ -24,8 +24,10 @@ flow matching 中 t→0 时 z≈纯噪声, 从中反推干净 x0 信息论上极
 
 ## skeleton-structural-accuracy (结构正确率)
 符号回归评估指标: 采出表达式的 skeleton (数值叶子替换为 CONSTANT_k 占位, 忽略具体常数) 与
-真值 skeleton 完全一致的比例。区别于 R² (数值拟合, 会骗人: 结构错但 BFGS 调常数后 R² 仍可观)
-和 token exact-match (逐 token, 含常数)。诊断脚本 diag_m3_structure.py 的核心指标。
+真值 skeleton 完全一致的比例。区别于 R² (数值拟合) 和 token exact-match (逐 token, 含常数)。
+> **立场变更 (2026-07-01)**: 用户裁定"能拟合的就是正确表达式, BFGS-R² 是唯一裁判"
+> (见 [[sr-no-ground-truth-form]])。本指标**不再作为模型好坏或训练有效性的评判/终止判据**;
+> 仅保留为"诊断采样过程本身有没有收敛"的工具性探测 (如 diag_m3_trajectory 起点消融)。
 
 ## SC-CFG (self-cond classifier-free guidance)
 原始 ELF 的可选增强: num_self_cond_cfg_tokens 个可学习 prefix token 注入 self-cond 强度标量,
