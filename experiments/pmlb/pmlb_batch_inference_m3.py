@@ -270,8 +270,10 @@ def run_inference_m3(dataset_name, denoiser, embedder, point_enc, env, eos_id,
     }
 
 
-def default_output_csv_m3(noise_strength):
-    return f"experiments/pmlb/results/pmlb_m3_adaptive_noise_{noise_strength:g}.csv"
+def default_output_csv_m3(ckpt, noise_strength):
+    # 命名 = 权重名(ckpt 父目录) + 噪声强度; 如 checkpoints/m3_rl/best.pth + 0.1 -> pmlb_m3_rl_0.1.csv
+    weight_name = os.path.basename(os.path.dirname(os.path.normpath(ckpt)))
+    return f"experiments/pmlb/results/pmlb_{weight_name}_{noise_strength:g}.csv"
 
 
 def build_parser():
@@ -341,7 +343,7 @@ def main():
     if args.dataset_limit is not None:
         dataset_names = dataset_names[: args.dataset_limit]
 
-    output_path = args.output_csv or default_output_csv_m3(args.noise_strength)
+    output_path = args.output_csv or default_output_csv_m3(args.ckpt, args.noise_strength)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     completed = load_existing_results(output_path)
     write_mode = "a" if os.path.exists(output_path) and os.path.getsize(output_path) > 0 else "w"

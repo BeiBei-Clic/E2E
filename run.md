@@ -200,7 +200,7 @@ tail -f logs/m3_self_cond_lr1e-4.log
 
 ```bash
 # pmlb 自适应评估 (改 --device / --noise_strength / --ckpt 即可; adaptive + 并行 BFGS 默认开)
-# 示例: token-GRPO 后训练权重; 换卡改 --device, 换噪声改 --noise_strength, 换权重改 --ckpt
+# 结果 CSV 自动按"权重名+噪声强度"命名: pmlb_{ckpt父目录}_{ns:g}.csv (如 m3_rl + 0.1 -> pmlb_m3_rl_0.1.csv)
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference_m3.py \
     --device cuda:1 --noise_strength 0.1 \
     --ckpt checkpoints/m3_rl/best.pth \
@@ -209,7 +209,7 @@ tail -f logs/pmlb_m3_rl.log   # 每集打印 "dataset: ok r2=... beam=N attempt=
 ```
 
 停止：`pkill -f pmlb_batch_inference_m3`。
-续跑：直接重跑同命令（`load_existing_results` 按 `(dataset, noise_strength)` 跳过已完成，CSV 追加写）。**换权重 / 换噪声强度** → 结果落不同 CSV（默认按 `noise_strength` 自动分文件 `pmlb_m3_adaptive_noise_{ns}.csv`；换权重想保留旧结果就显式 `--output_csv` 指新文件）从头跑。
+续跑：直接重跑同命令（`load_existing_results` 按 `(dataset, noise_strength)` 跳过已完成，CSV 追加写）。**换权重 / 换噪声强度** → 结果自动落不同 CSV（默认按"权重名(ckpt 父目录)+噪声强度"命名 `pmlb_{ckpt父目录}_{ns:g}.csv`，权重或噪声任一不同即分文件）。
 
 **关键参数**
 
@@ -229,7 +229,7 @@ tail -f logs/pmlb_m3_rl.log   # 每集打印 "dataset: ok r2=... beam=N attempt=
 | `--rescale` | True | StandardScaler 标准化 X（训练数值点已标准化到 O(1)，必要；`--no-rescale` 关） |
 | `--noise_seed` / `--seed` | 0 / 0 | 噪声种子 / 采样种子 |
 | `--dataset_limit` | None | 只跑前 N 个数据集（smoke 用，如 `--dataset_limit 2`） |
-| `--output_csv` | `experiments/pmlb/results/pmlb_m3_adaptive_noise_{ns}.csv` | 结果 CSV（默认按 noise_strength 自动分文件；含 `beam_size`/`attempt` 列） |
+| `--output_csv` | `experiments/pmlb/results/pmlb_{ckpt父目录}_{ns:g}.csv` | 结果 CSV（默认按"权重名(ckpt 父目录)+噪声强度"自动命名；含 `beam_size`/`attempt` 列） |
 
 > 流程对齐细节：`apply_target_noise` 加噪→`y_to_fit`（BFGS 拟合目标）；`StandardScaler` 只标准化 X、不动 y；BFGS(Nelder-Mead) 在 scaled_X 空间拟合常数、reference=`y_to_fit`；`rescale_function` 把树里 `x_k` 包 `add(b_k,mul(a_k,x_k))`（常数不变）；报告口径=rescale 后树在原 X 求值 vs 干净 y。`refinement_type` 取 NoRef/BFGS 中 r² 较优者。try-except 仅包 BFGS（Nelder-Mead 失败 / 非有限 → 回退 raw）。**自适应**：cond 只算一次（与采样数无关），每 attempt 仅重跑 ODE 采样 + 并行 BFGS；CSV 的 `beam_size`/`attempt` 记录命中最优的采样规模与轮次。smoke（best.pth step10000, n_samples=16 / max_retries=1 / 8 worker）：1027_ESL r2=0.866 beam=16 attempt=1、1028_SWD r2=0.333 beam=16 attempt=1（R²<0.9 已翻倍到 32 但未超过 16 的结果，故 attempt=1）。
 
