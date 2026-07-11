@@ -203,9 +203,7 @@ tail -f logs/m3_self_cond_lr1e-4.log
 # 结果 CSV 自动按"权重名+噪声强度"命名: pmlb_{ckpt父目录}_{ns:g}.csv (如 m3_rl + 0.1 -> pmlb_m3_rl_0.1.csv)
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference_m3.py \
     --device cuda:1 --noise_strength 0.1 \
-    --ckpt checkpoints/m3_rl/best.pth \
-    > logs/pmlb_m3_rl.log 2>&1 &
-tail -f logs/pmlb_m3_rl.log   # 每集打印 "dataset: ok r2=... beam=N attempt=K (Ns)"
+    --ckpt checkpoints/m3_rl/best.pth
 ```
 
 停止：`pkill -f pmlb_batch_inference_m3`。

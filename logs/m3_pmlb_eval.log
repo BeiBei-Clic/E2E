@@ -1,2 +1,0 @@
-loaded checkpoints/m3_rl/best.pth: step 1401 val_l2 ?
-1027_ESL: ok r2=0.8790043040640592 beam=64 attempt=2 (205.89s)
