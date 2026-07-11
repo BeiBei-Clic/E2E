@@ -199,13 +199,13 @@ tail -f logs/m3_self_cond_lr1e-4.log
 `experiments/pmlb/pmlb_batch_inference_m3.py`：把 `pmlb_batch_inference.py` 的符号回归模型从端到端 `SymbolicTransformerRegressor` 换成 M3 流匹配（数值点 → cond_emb → ODE 批量采样 → decode → BFGS 常数优化 → rescale → R²）。**对齐 `pmlb_adaptive_beam_inference.py` 两点做法**：① **自适应采样规模**——M3 无 beam，等价物是并行采样数 `n_samples`，R² < `r2_threshold` 则 `n_samples` 翻倍重试（跨 attempt 取最优、达阈值提前退出）；② **多 worker 并行 BFGS**——skeleton 去重后的唯一候选用 `ProcessPoolExecutor(fork)` 并行常数优化（M3 的 `tree_fit_r2` 纯 numpy、不依赖 env/GPU，task 直接传 `(tree,x,y)`）。维度 >10 跳过，其余（StandardScaler 标准化 X / BFGS-in-scaled-space / rescale_function / metrics）与端到端评估完全一致（CSV 在端到端字段上加 `beam_size`/`attempt` 两列）。端到端基线（model.pt, noise=0.1, 222 集）：r² 中位 0.783、>0.5 占 157/221。
 
 ```bash
-# M3 pmlb 自适应评估 (改 --device / --noise_strength / --ckpt 即可; adaptive + 并行 BFGS 默认开)
+# pmlb 自适应评估 (改 --device / --noise_strength / --ckpt 即可; adaptive + 并行 BFGS 默认开)
+# 示例: token-GRPO 后训练权重; 换卡改 --device, 换噪声改 --noise_strength, 换权重改 --ckpt
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference_m3.py \
-    --device cuda:0 --noise_strength 0.1 \
-    --ckpt checkpoints/m3_self_cond/best.pth \
-    --self_cond \
-    > logs/m3_pmlb_eval.log 2>&1 &
-tail -f logs/m3_pmlb_eval.log   # 每集打印 "dataset: ok r2=... beam=N attempt=K (Ns)"
+    --device cuda:1 --noise_strength 0.1 \
+    --ckpt checkpoints/m3_rl/best.pth \
+    > logs/pmlb_m3_rl.log 2>&1 &
+tail -f logs/pmlb_m3_rl.log   # 每集打印 "dataset: ok r2=... beam=N attempt=K (Ns)"
 ```
 
 停止：`pkill -f pmlb_batch_inference_m3`。
