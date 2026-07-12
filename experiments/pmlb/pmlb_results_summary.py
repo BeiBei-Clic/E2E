@@ -28,7 +28,7 @@ DEFAULT_INPUT_CSVS = (
     "experiments/pmlb/results/pmlb_batch_inference_noise_0.001.csv",
     "experiments/pmlb/results/pmlb_results.csv",
 )
-NOISE_PATTERN = re.compile(r"noise_(.+?)(?:_simplified)?\.csv$")
+NOISE_PATTERN = re.compile(r"_(\d+(?:\.\d+)?)\.csv$")
 
 
 def build_parser():
