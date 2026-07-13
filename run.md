@@ -239,6 +239,9 @@ PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference_m3.py \
 PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_results_summary.py \
     --input_csvs \
         experiments/pmlb/results/pmlb_m3_rl_0.csv \
+        experiments/pmlb/results/pmlb_m3_rl_0.1.csv \
+        experiments/pmlb/results/pmlb_m3_rl_0.01.csv \
+        experiments/pmlb/results/pmlb_m3_rl_0.001.csv \
     --output_csv experiments/pmlb/results/pmlb_m3_summary.csv
 ```
 
