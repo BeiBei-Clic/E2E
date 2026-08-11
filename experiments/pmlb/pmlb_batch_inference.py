@@ -46,13 +46,15 @@ def build_parser():
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--output_csv", default=None)
     parser.add_argument("--sample_rows", type=int, default=None)
-    parser.add_argument("--max_rows", type=int, default=200)
+    parser.add_argument("--max_rows", type=int, default=None)
     parser.add_argument("--max_input_points", type=int, default=200)
-    parser.add_argument("--n_trees_to_refine", type=int, default=100)
+    parser.add_argument("--max_number_bags", type=int, default=100)
+    parser.add_argument("--n_trees_to_refine", type=int, default=10)
     parser.add_argument("--dataset_limit", type=int, default=None)
     parser.add_argument("--rescale", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--noise_strength", type=float, default=0.0)
     parser.add_argument("--noise_seed", type=int, default=0)
+    parser.add_argument("--random_state", type=int, default=29910)
     return parser
 
 
@@ -148,10 +150,12 @@ def main():
                     datasets_dir=args.datasets_dir,
                     max_rows=args.max_rows,
                     max_input_points=args.max_input_points,
+                    max_number_bags=args.max_number_bags,
                     n_trees_to_refine=args.n_trees_to_refine,
                     rescale=args.rescale,
                     noise_strength=args.noise_strength,
                     noise_seed=args.noise_seed,
+                    random_state=args.random_state,
                 )
                 row.update({field: result[field] for field in RESULT_FIELDS if field in result})
             except Exception as exc:

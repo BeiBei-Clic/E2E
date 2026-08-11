@@ -4,6 +4,7 @@ import time
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.model_selection import train_test_split
 
 import symbolicregression.model
 from symbolicregression.metrics import compute_metrics
@@ -69,20 +70,25 @@ def run_inference(
     dataset_name,
     model,
     datasets_dir="pmlb/datasets",
-    max_rows=200,
+    max_rows=None,
     max_input_points=200,
-    n_trees_to_refine=100,
+    max_number_bags=100,
+    n_trees_to_refine=10,
     rescale=True,
     noise_strength=0.0,
     noise_seed=0,
+    random_state=29910,
 ):
     dataset_path, df, X, y = load_pmlb_dataset(
         dataset_name=dataset_name,
         datasets_dir=datasets_dir,
         max_rows=max_rows,
     )
-    y_to_fit = apply_target_noise(
-        y,
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.25, random_state=random_state
+    )
+    y_train_fit = apply_target_noise(
+        y_train,
         noise_strength=noise_strength,
         noise_seed=noise_seed,
     )
@@ -91,15 +97,16 @@ def run_inference(
     est = symbolicregression.model.SymbolicTransformerRegressor(
         model=model,
         max_input_points=max_input_points,
+        max_number_bags=max_number_bags,
         n_trees_to_refine=n_trees_to_refine,
         rescale=rescale,
     )
-    est.fit(X, y_to_fit)
+    est.fit(X_train, y_train_fit)
     tree_info = est.retrieve_tree(with_infos=True)
-    y_pred = est.predict(X, refinement_type=tree_info["refinement_type"])
+    y_pred = est.predict(X_test, refinement_type=tree_info["refinement_type"])
     metrics = compute_metrics(
         {
-            "true": [y],
+            "true": [y_test],
             "predicted": [y_pred],
             "predicted_tree": [tree_info["predicted_tree"]],
         },
@@ -128,12 +135,14 @@ def build_parser():
     parser.add_argument("--datasets_dir", default="pmlb/datasets")
     parser.add_argument("--model_path", default="model.pt")
     parser.add_argument("--device", default="cpu")
-    parser.add_argument("--max_rows", type=int, default=200)
+    parser.add_argument("--max_rows", type=int, default=None)
     parser.add_argument("--max_input_points", type=int, default=200)
-    parser.add_argument("--n_trees_to_refine", type=int, default=100)
+    parser.add_argument("--max_number_bags", type=int, default=100)
+    parser.add_argument("--n_trees_to_refine", type=int, default=10)
     parser.add_argument("--rescale", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--noise_strength", type=float, default=0.0)
     parser.add_argument("--noise_seed", type=int, default=0)
+    parser.add_argument("--random_state", type=int, default=29910)
     return parser
 
 
@@ -146,10 +155,12 @@ def main():
         datasets_dir=args.datasets_dir,
         max_rows=args.max_rows,
         max_input_points=args.max_input_points,
+        max_number_bags=args.max_number_bags,
         n_trees_to_refine=args.n_trees_to_refine,
         rescale=args.rescale,
         noise_strength=args.noise_strength,
         noise_seed=args.noise_seed,
+        random_state=args.random_state,
     )
 
     print(f"dataset={result['dataset']}")

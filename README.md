@@ -65,7 +65,7 @@ PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device 
 如果要跑带噪声实验，额外传入噪声强度和随机种子：
 
 ```bash
-PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device cuda:3 --noise_strength 0.1 --noise_seed 0
+PYTHONPATH=. .venv/bin/python experiments/pmlb/pmlb_batch_inference.py --device cuda:2 --noise_strength 0.1
 ```
 
 默认会遍历全部数据集，并且每个数据集读取前 200 个样本；测试命令只是把参数调小来快速验证。
