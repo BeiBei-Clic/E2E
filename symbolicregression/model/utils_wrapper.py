@@ -103,7 +103,8 @@ class StandardScaler(Scaler):
 
     def get_params(self):
         m, s = self.scaler.mean_, np.sqrt(self.scaler.var_)
-        a, b = 1/s, -m/s
+        a = np.where(s == 0, 0.0, 1.0 / s)
+        b = np.where(s == 0, 0.0, -m / s)
         return (a, b)
     
 class MinMaxScaler(Scaler):
@@ -127,7 +128,9 @@ class MinMaxScaler(Scaler):
 
     def get_params(self):
         val_min, val_max = self.scaler.data_min_, self.scaler.data_max_
-        a, b = 2./(val_max-val_min), -1.-2.*val_min/(val_max-val_min)
+        scale = val_max - val_min
+        a = np.where(scale == 0, 0.0, 2.0 / scale)
+        b = np.where(scale == 0, -1.0, -1.0 - 2.0 * val_min / scale)
         return (a, b)
 
 class BFGSRefinement():
