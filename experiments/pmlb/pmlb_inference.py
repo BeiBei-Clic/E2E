@@ -1,4 +1,5 @@
 import argparse
+import os
 import time
 
 import numpy as np
@@ -8,6 +9,25 @@ from sklearn.model_selection import train_test_split
 
 import symbolicregression.model
 from symbolicregression.metrics import compute_metrics
+
+
+def is_regression_dataset(datasets_dir, dataset_name):
+    metadata_path = os.path.join(datasets_dir, dataset_name, "metadata.yaml")
+    if not os.path.exists(metadata_path):
+        return False
+    with open(metadata_path, "r") as handle:
+        for line in handle:
+            if line.strip() == "task: regression":
+                return True
+    return False
+
+
+def list_regression_datasets(datasets_dir):
+    return [
+        name
+        for name in sorted(os.listdir(datasets_dir))
+        if is_regression_dataset(datasets_dir, name)
+    ]
 
 
 def format_expr(tree):
@@ -77,6 +97,7 @@ def run_inference(
     rescale=True,
     noise_strength=0.0,
     noise_seed=0,
+    dataset_index=0,
     random_state=29910,
 ):
     dataset_path, df, X, y = load_pmlb_dataset(
@@ -90,7 +111,7 @@ def run_inference(
     y_train_fit = apply_target_noise(
         y_train,
         noise_strength=noise_strength,
-        noise_seed=noise_seed,
+        noise_seed=noise_seed + dataset_index,
     )
 
     start = time.time()
@@ -108,7 +129,7 @@ def run_inference(
         {
             "true": [y_test],
             "predicted": [y_pred],
-            "predicted_tree": [tree_info["predicted_tree"]],
+            "predicted_tree": [tree_info["predicted_tree_standardized"]],
         },
         metrics="r2,_rmse,_complexity",
     )
@@ -149,6 +170,7 @@ def build_parser():
 def main():
     args = build_parser().parse_args()
     model = load_model(args.model_path, device=args.device)
+    dataset_names = list_regression_datasets(args.datasets_dir)
     result = run_inference(
         dataset_name=args.dataset_name,
         model=model,
@@ -160,6 +182,7 @@ def main():
         rescale=args.rescale,
         noise_strength=args.noise_strength,
         noise_seed=args.noise_seed,
+        dataset_index=dataset_names.index(args.dataset_name),
         random_state=args.random_state,
     )
 

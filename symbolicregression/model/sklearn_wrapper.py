@@ -129,9 +129,10 @@ class SymbolicTransformerRegressor(BaseEstimator):
         
             refined_candidates = self.refine(scaled_X[input_id], Y[input_id], candidates_id, verbose=verbose)
             for i,candidate in enumerate(refined_candidates):
+                refined_candidates[i]["predicted_tree_standardized"]=candidate["predicted_tree"]
                 if scaler is not None:
                     refined_candidates[i]["predicted_tree"]=scaler.rescale_function(self.model.env, candidate["predicted_tree"], *scale_params[input_id])
-                else: 
+                else:
                     refined_candidates[i]["predicted_tree"]=candidate["predicted_tree"]
             self.tree[input_id] = refined_candidates
 
@@ -246,7 +247,7 @@ class SymbolicTransformerRegressor(BaseEstimator):
                 best_tree = list(filter(lambda gen: gen["refinement_type"]==refinement_type, best_tree))
             if not best_tree:
                 if with_infos:
-                    best_trees.append({"predicted_tree": None, "refinement_type": None, "time": None})
+                    best_trees.append({"predicted_tree": None, "predicted_tree_standardized": None, "refinement_type": None, "time": None})
                 else:
                     best_trees.append(None)
             else:

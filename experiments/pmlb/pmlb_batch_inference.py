@@ -2,7 +2,13 @@ import argparse
 import csv
 import os
 
-from experiments.pmlb.pmlb_inference import load_model, load_pmlb_dataset, run_inference
+import pandas as pd
+
+from experiments.pmlb.pmlb_inference import (
+    list_regression_datasets,
+    load_model,
+    run_inference,
+)
 
 
 RESULT_FIELDS = (
@@ -18,25 +24,6 @@ RESULT_FIELDS = (
     "noise_strength",
     "expr",
 )
-
-
-def is_regression_dataset(datasets_dir, dataset_name):
-    metadata_path = os.path.join(datasets_dir, dataset_name, "metadata.yaml")
-    if not os.path.exists(metadata_path):
-        return False
-    with open(metadata_path, "r") as handle:
-        for line in handle:
-            if line.strip() == "task: regression":
-                return True
-    return False
-
-
-def list_regression_datasets(datasets_dir):
-    return [
-        name
-        for name in sorted(os.listdir(datasets_dir))
-        if is_regression_dataset(datasets_dir, name)
-    ]
 
 
 def build_parser():
@@ -100,6 +87,7 @@ def main():
         args.max_input_points = args.sample_rows
 
     dataset_names = list_regression_datasets(args.datasets_dir)
+    dataset_indices = {name: index for index, name in enumerate(dataset_names)}
     if args.dataset_limit is not None:
         dataset_names = dataset_names[: args.dataset_limit]
 
@@ -126,14 +114,10 @@ def main():
                     f"(already completed for noise_strength={args.noise_strength:g})"
                 )
                 continue
-            _, _, X, _ = load_pmlb_dataset(
-                dataset_name=dataset_name,
-                datasets_dir=args.datasets_dir,
-                max_rows=args.max_rows,
+            dataset_path = os.path.join(
+                args.datasets_dir, dataset_name, f"{dataset_name}.tsv.gz"
             )
-            if X.shape[1] > 10:
-                print(f"{dataset_name}: skipped (n_features={X.shape[1]} > 10)")
-                continue
+            n_features = pd.read_csv(dataset_path, sep="\t", nrows=0).shape[1] - 1
 
             row = {field: "" for field in RESULT_FIELDS}
             row.update(
@@ -143,6 +127,13 @@ def main():
                     "noise_strength": args.noise_strength,
                 }
             )
+            if n_features > 10:
+                row["status"] = "skip"
+                row["n_features"] = n_features
+                writer.writerow(row)
+                handle.flush()
+                print(f"{dataset_name}: skipped (n_features={n_features} > 10)")
+                continue
             try:
                 result = run_inference(
                     dataset_name=dataset_name,
@@ -155,6 +146,7 @@ def main():
                     rescale=args.rescale,
                     noise_strength=args.noise_strength,
                     noise_seed=args.noise_seed,
+                    dataset_index=dataset_indices[dataset_name],
                     random_state=args.random_state,
                 )
                 row.update({field: result[field] for field in RESULT_FIELDS if field in result})

@@ -11,7 +11,7 @@ from sympy.parsing.sympy_parser import (
     standard_transformations,
 )
 
-from experiments.pmlb.pmlb_batch_inference import list_regression_datasets
+from experiments.pmlb.pmlb_inference import list_regression_datasets
 from symbolicregression.envs.simplifiers import Simplifier
 
 
